@@ -55,12 +55,40 @@ public class HologramPlacementTest {
         assertEquals(0, saved.getOffsetX(), 0);
     }
 
-    @Test public void frontPresetsAndPreviewDoNotRedefineReset() {
-        HologramLabel label = new HologramLabel(null, 0, 64, 0);
-        float[] front = HologramPlacement.frontOffsets(2);
-        label.setLabel("EBF", front[0], front[1], front[2]);
-        label.setLabel("EBF", 0, 0, 0);
-        assertEquals(0.5, HologramPlacement.centerX(label), 0.000001);
-        assertEquals(1.5, HologramPlacement.centerZ(label), 0.000001);
+    @Test public void frontPresetsDisplayZeroAndSurviveEditingReloadAndReset() {
+        for (int face = 2; face <= 5; face++) {
+            HologramLabel label = new HologramLabel(null, 0, 64, 0);
+            label.setPlacementFace(face);
+            float[] base = HologramPlacement.frontOffsets(face);
+            label.setLabel("EBF", base[0], base[1], base[2]);
+            assertArrayEquals(new float[] {0, 0, 0}, label.getPositionOffsets(), 0);
+            double x = HologramPlacement.centerX(label);
+            double z = HologramPlacement.centerZ(label);
+            label.setLabel("EBF", base[0] + 0.25F, 0.5F, base[2] - 0.75F);
+            label = HologramLabel.fromNBT(null, label.toNBT());
+            assertEquals(face, label.getPlacementFace());
+            assertArrayEquals(new float[] {0.25F, 0.5F, -0.75F}, label.getPositionOffsets(), 0);
+            HologramLabel copy = new HologramLabel(null, 0, 64, 0);
+            copy.copyFrom(label);
+            assertEquals(face, copy.getPlacementFace());
+            copy.setLabel("EBF", base[0], base[1], base[2]);
+            assertArrayEquals(new float[] {0, 0, 0}, copy.getPositionOffsets(), 0);
+            assertEquals(x, HologramPlacement.centerX(copy), 0);
+            assertEquals(z, HologramPlacement.centerZ(copy), 0);
+        }
+    }
+
+    @Test public void oldAutomaticPresetsBecomeZeroWithoutMovingInWorld() {
+        for (int face = 2; face <= 5; face++) {
+            HologramLabel old = new HologramLabel(null, 10, 64, 20);
+            float[] base = HologramPlacement.frontOffsets(face);
+            old.setLabel("old", base[0], base[1], base[2]);
+            net.minecraft.nbt.NBTTagCompound tag = old.toNBT();
+            tag.removeTag("PlacementFace");
+            HologramLabel migrated = HologramLabel.fromNBT(null, tag);
+            assertArrayEquals(new float[] {0, 0, 0}, migrated.getPositionOffsets(), 0);
+            assertEquals(HologramPlacement.centerX(old), HologramPlacement.centerX(migrated), 0);
+            assertEquals(HologramPlacement.centerZ(old), HologramPlacement.centerZ(migrated), 0);
+        }
     }
 }

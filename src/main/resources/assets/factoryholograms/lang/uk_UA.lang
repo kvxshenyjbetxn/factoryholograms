@@ -15,7 +15,7 @@ gui.factoryholograms.position.step=0.25 (Shift: 1)
 gui.factoryholograms.position.x=X: мінус — захід / плюс — схід
 gui.factoryholograms.position.y=Y: мінус — вниз / плюс — вгору
 gui.factoryholograms.position.z=Z: мінус — північ / плюс — південь
-gui.factoryholograms.position.hint=Нуль — базовий +1 по Z. Рух видно одразу; «Готово» зберігає у файл.
+gui.factoryholograms.position.hint=Нуль — початкова позиція біля вибраної грані блока. Рух видно одразу; «Готово» зберігає у файл.
 
 gui.factoryholograms.position.preview=Перегляд позиції
 gui.factoryholograms.position.back=До редактора

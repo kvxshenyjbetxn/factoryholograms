@@ -68,7 +68,8 @@ public final class LocalLabelStore {
         HologramLabel existing = saved.get(key(x, y, z));
         if (existing != null && (!world.blockExists(x, y, z) || existing.matchesBlock())) return copy(existing);
         HologramLabel draft = new HologramLabel(world, x, y, z);
-        float[] offsets = HologramPlacement.frontOffsets(frontFace);
+        draft.setPlacementFace(frontFace);
+        float[] offsets = HologramPlacement.frontOffsets(draft.getPlacementFace());
         draft.setLabel("", offsets[0], offsets[1], offsets[2]);
         return draft;
     }

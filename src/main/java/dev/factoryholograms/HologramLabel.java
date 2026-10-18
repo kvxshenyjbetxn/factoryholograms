@@ -16,6 +16,7 @@ public class HologramLabel implements IInventory {
     private final ItemStack[] icons = new ItemStack[LabelRules.ICON_SLOTS];
     private String title = "";
     private float offsetX, offsetY, offsetZ;
+    private int placementFace = 3;
     private String blockName = "";
     private int blockMeta;
 
@@ -41,6 +42,14 @@ public class HologramLabel implements IInventory {
     public float getOffsetX() { return offsetX; }
     public float getOffsetY() { return offsetY; }
     public float getOffsetZ() { return offsetZ; }
+    public int getPlacementFace() { return placementFace; }
+    public void setPlacementFace(int face) { placementFace = face >= 2 && face <= 5 ? face : 3; }
+
+    /** User adjustments relative to the automatic front placement, not the world anchor. */
+    public float[] getPositionOffsets() {
+        float[] base = HologramPlacement.frontOffsets(placementFace);
+        return new float[] {offsetX - base[0], offsetY - base[1], offsetZ - base[2]};
+    }
     public void setLabel(String text) { setLabel(text, offsetX, offsetY, offsetZ); }
 
     public void setLabel(String text, float offsetX, float offsetY, float offsetZ) {
@@ -75,6 +84,7 @@ public class HologramLabel implements IInventory {
         offsetX = other.offsetX;
         offsetY = other.offsetY;
         offsetZ = other.offsetZ;
+        placementFace = other.placementFace;
         blockName = other.blockName;
         blockMeta = other.blockMeta;
         for (int i = 0; i < icons.length; i++) icons[i] = other.icons[i] == null ? null : other.icons[i].copy();
@@ -89,6 +99,7 @@ public class HologramLabel implements IInventory {
         tag.setInteger("Meta", blockMeta);
         tag.setString("Title", title);
         tag.setInteger("LabelFormat", 2);
+        tag.setInteger("PlacementFace", placementFace);
         tag.setFloat("OffsetX", offsetX);
         tag.setFloat("OffsetY", offsetY);
         tag.setFloat("OffsetZ", offsetZ);
@@ -108,6 +119,18 @@ public class HologramLabel implements IInventory {
         label.offsetY = LabelRules.offset(tag.getFloat("OffsetY"));
         boolean legacy = tag.getInteger("LabelFormat") < 2;
         label.offsetZ = LabelRules.offset(tag.getFloat("OffsetZ") - (legacy ? LabelRules.BASE_Z : 0));
+        if (tag.hasKey("PlacementFace", 3)) {
+            label.setPlacementFace(tag.getInteger("PlacementFace"));
+        } else if (!legacy) {
+            // Recover untouched old front presets without moving any existing label.
+            for (int face = 2; face <= 5; face++) {
+                float[] base = HologramPlacement.frontOffsets(face);
+                if (label.offsetX == base[0] && label.offsetY == base[1] && label.offsetZ == base[2]) {
+                    label.setPlacementFace(face);
+                    break;
+                }
+            }
+        }
         label.blockName = tag.getString("Block");
         if (label.blockName.length() > 256) label.blockName = "";
         label.blockMeta = tag.getInteger("Meta");

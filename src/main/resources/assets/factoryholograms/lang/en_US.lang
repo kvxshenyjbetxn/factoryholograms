@@ -15,7 +15,7 @@ gui.factoryholograms.position.step=0.25 (Shift: 1)
 gui.factoryholograms.position.x=X: minus west / plus east
 gui.factoryholograms.position.y=Y: minus down / plus up
 gui.factoryholograms.position.z=Z: minus north / plus south
-gui.factoryholograms.position.hint=Zero includes the preset +1 world Z. Moves preview immediately; Apply saves to disk.
+gui.factoryholograms.position.hint=Zero means the initial position at the selected block face. Moves preview immediately; Apply saves to disk.
 
 gui.factoryholograms.position.preview=Position preview
 gui.factoryholograms.position.back=Back to editor

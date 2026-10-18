@@ -30,6 +30,7 @@ import dev.factoryholograms.FactoryHolograms;
 import dev.factoryholograms.GhostDrag;
 import dev.factoryholograms.HologramConfig;
 import dev.factoryholograms.HologramLabel;
+import dev.factoryholograms.HologramPlacement;
 
 import dev.factoryholograms.LabelRules;
 
@@ -168,7 +169,8 @@ public final class HologramGui extends GuiContainer {
             setWorldAndResolution(mc, width, height);
             return;
         } else if (button.id == POSITION_RESET) {
-            for (int axis = 0; axis < 3; axis++) offsets[axis] = 0;
+            float[] base = HologramPlacement.frontOffsets(draft.getPlacementFace());
+            System.arraycopy(base, 0, offsets, 0, offsets.length);
 
         } else if (button.id >= POSITION_FIRST && button.id < POSITION_RESET) {
             int axis = (button.id - POSITION_FIRST) / 2;
@@ -612,10 +614,11 @@ public final class HologramGui extends GuiContainer {
         }
         drawLabel(fontRendererObj.trimStringToWidth(text("position.title", "Position"), 112), 184, 10, ACCENT);
         String[] axes = { "X", "Y", "Z" };
+        float[] position = draft.getPositionOffsets();
         for (int axis = 0; axis < 3; axis++) {
             int y = 37 + axis * 26;
             drawLabel(axes[axis], 184, y, ACCENT);
-            String value = String.format(Locale.ROOT, "%+.2f", offsets[axis]);
+            String value = String.format(Locale.ROOT, "%+.2f", position[axis]);
             drawLabel(value, 247 - fontRendererObj.getStringWidth(value) / 2, y, 0xE4F8FA);
         }
         drawLabel(fontRendererObj.trimStringToWidth(text("position.step", "0.25 (Shift: 1)"), 112),
