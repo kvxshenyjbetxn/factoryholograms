@@ -43,24 +43,13 @@ public class HologramPaletteTest {
         }
     }
 
-    @Test public void blackAndDarkCustomColorsReceiveALightPanel() {
-        int light = HologramPalette.panelBackground(HologramPalette.BLACK.rgb);
-        assertTrue(brightness(light) > 200000);
-        for (int rgb : new int[] { 0x000001, 0x101820, 0x222222, 0x000080, 0x800000, HologramPalette.BLUE.rgb }) {
-            assertEquals(light, HologramPalette.panelBackground(rgb));
+    @Test public void panelBackgroundPreservesSelectedColorIncludingBlack() {
+        for (HologramPalette entry : HologramPalette.values()) {
+            assertEquals(entry.rgb, HologramPalette.panelBackground(entry.rgb));
         }
-    }
-
-    @Test public void brightColorsReceiveADarkPanel() {
-        int dark = HologramPalette.panelBackground(HologramPalette.WHITE.rgb);
-        assertTrue(brightness(dark) < 50000);
-        for (HologramPalette entry : new HologramPalette[] {
-            HologramPalette.CYAN, HologramPalette.GREEN, HologramPalette.YELLOW,
-            HologramPalette.ORANGE, HologramPalette.GRAY
-        }) {
-            assertEquals(dark, HologramPalette.panelBackground(entry.rgb));
+        for (int rgb : new int[] { 0x000001, 0x101820, 0x222222, 0x000080, 0x800000 }) {
+            assertEquals(rgb, HologramPalette.panelBackground(rgb));
         }
-        assertNotEquals(dark, HologramPalette.panelBackground(HologramPalette.BLACK.rgb));
     }
 
     @Test public void panelBackgroundUsesRgbOnlyAndReturnsNoAlpha() {
@@ -71,7 +60,4 @@ public class HologramPaletteTest {
         }
     }
 
-    private static int brightness(int rgb) {
-        return ((rgb >>> 16) & 0xFF) * 299 + ((rgb >>> 8) & 0xFF) * 587 + (rgb & 0xFF) * 114;
-    }
 }

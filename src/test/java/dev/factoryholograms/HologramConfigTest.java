@@ -41,12 +41,36 @@ public class HologramConfigTest {
         assertEquals(12, HologramConfig.renderDistance);
         assertEquals(0.85F, HologramConfig.opacity, 0.00001F);
         assertEquals(0x55DDFF, HologramConfig.color);
-        assertEquals(4, HologramConfig.getConfiguration().getCategory("display").size());
+        assertEquals(0xFFFFFF, HologramConfig.textColor);
+        assertEquals(5, HologramConfig.getConfiguration().getCategory("display").size());
                 assertEquals("cyan", HologramConfig.getConfiguration().getCategory("display").get("color").getString());
                 assertEquals("cyan", HologramConfig.getConfiguration().getCategory("display").get("color").getDefault());
                 HologramConfig.load(file);
                 assertEquals(0x55DDFF, HologramConfig.color);
                 assertEquals("cyan", HologramConfig.getConfiguration().getCategory("display").get("color").getString());
+    }
+
+    @Test public void textColorsPersistIndependentlyFromBlackBackground() throws Exception {
+        File file = new File(temporary.newFolder(), "factoryholograms.cfg");
+        HologramConfig.load(file);
+        HologramConfig.getConfiguration().getCategory("display").get("color").set("black");
+        for (String value : new String[] { "white", "black", " RED ", "#123456", "invalid" }) {
+            HologramConfig.getConfiguration().getCategory("display").get("textColor").set(value);
+            HologramConfig.sync();
+            int expected = "invalid".equals(value) ? 0xFFFFFF : HologramConfig.parseColor(value);
+            assertEquals(expected, HologramConfig.textColor);
+            HologramConfig.load(file);
+            assertEquals(expected, HologramConfig.textColor);
+            assertEquals(0, HologramConfig.color);
+        }
+        for (HologramPalette entry : HologramPalette.values()) {
+            HologramConfig.getConfiguration().getCategory("display").get("textColor").set(entry.id);
+            HologramConfig.sync();
+            HologramConfig.load(file);
+            assertEquals(entry.rgb, HologramConfig.textColor);
+            assertEquals(entry.id, HologramConfig.getConfiguration().getCategory("display").get("textColor").getString());
+            assertEquals(0, HologramConfig.color);
+        }
     }
 
     @Test public void togglePersistsAcrossReload() throws Exception {
@@ -112,7 +136,7 @@ public class HologramConfigTest {
                 HologramConfig.load(file);
                 assertEquals(entry.rgb, HologramConfig.color);
                 assertEquals(entry.id, HologramConfig.getConfiguration().getCategory("display").get("color").getString());
-                assertEquals(4, HologramConfig.getConfiguration().getCategory("display").size());
+                assertEquals(5, HologramConfig.getConfiguration().getCategory("display").size());
             }
         }
 
@@ -129,7 +153,7 @@ public class HologramConfigTest {
                 HologramConfig.load(file);
                 assertEquals(entry.rgb, HologramConfig.color);
                 assertEquals(entry.id, HologramConfig.getConfiguration().getCategory("display").get("color").getString());
-                assertEquals(4, HologramConfig.getConfiguration().getCategory("display").size());
+                assertEquals(5, HologramConfig.getConfiguration().getCategory("display").size());
             }
         }
 
@@ -150,7 +174,7 @@ public class HologramConfigTest {
                     assertFalse(HologramConfig.enabled);
                     assertEquals(24, HologramConfig.renderDistance);
                     assertEquals(0.5F, HologramConfig.opacity, 0);
-                    assertEquals(4, HologramConfig.getConfiguration().getCategory("display").size());
+                    assertEquals(5, HologramConfig.getConfiguration().getCategory("display").size());
                 }
             }
         }

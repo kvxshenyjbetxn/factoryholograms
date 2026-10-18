@@ -13,10 +13,12 @@ public final class HologramConfig {
     public static final int MAX_DISTANCE = 64;
     public static final float DEFAULT_OPACITY = 0.85F;
     public static final int DEFAULT_COLOR = HologramPalette.CYAN.rgb;
+    public static final int DEFAULT_TEXT_COLOR = HologramPalette.WHITE.rgb;
     public static boolean enabled = true;
     public static int renderDistance = DEFAULT_DISTANCE;
     public static float opacity = DEFAULT_OPACITY;
     public static int color = DEFAULT_COLOR;
+    public static int textColor = DEFAULT_TEXT_COLOR;
     private static Configuration configuration;
 
     private HologramConfig() {}
@@ -46,11 +48,8 @@ public final class HologramConfig {
         double value = opacityProperty.getDouble(DEFAULT_OPACITY);
         opacity = Double.isNaN(value) || Double.isInfinite(value) ? DEFAULT_OPACITY : (float) Math.max(0.0, Math.min(1.0, value));
         opacityProperty.set((double) opacity);
-        Property colorProperty = configuration.get("display", "color", HologramPalette.CYAN.id, "Global accent/text color. Choose a named color in Mods Config; existing six-digit RGB hex colors are also supported.");
-        colorProperty.setLanguageKey("config.factoryholograms.color");
-        color = parseColor(colorProperty.getString());
-        HologramPalette namedColor = HologramPalette.fromRgb(color);
-        colorProperty.set(namedColor == null ? String.format(Locale.ROOT, "%06X", color) : namedColor.id);
+        color = syncColor("color", HologramPalette.CYAN, "Global panel background and border color. Named colors and six-digit RGB hex are supported.");
+        textColor = syncColor("textColor", HologramPalette.WHITE, "Global title and arrow color. Named colors and six-digit RGB hex are supported.");
         if (configuration.hasChanged()) configuration.save();
     }
 
@@ -62,13 +61,26 @@ public final class HologramConfig {
         }
     }
 
+    private static int syncColor(String name, HologramPalette defaultColor, String comment) {
+        Property property = configuration.get("display", name, defaultColor.id, comment);
+        property.setLanguageKey("config.factoryholograms." + name);
+        int rgb = parseColor(property.getString(), defaultColor.rgb);
+        HologramPalette namedColor = HologramPalette.fromRgb(rgb);
+        property.set(namedColor == null ? String.format(Locale.ROOT, "%06X", rgb) : namedColor.id);
+        return rgb;
+    }
+
     static int parseColor(String value) {
-        if (value == null) return DEFAULT_COLOR;
+        return parseColor(value, DEFAULT_COLOR);
+    }
+
+    private static int parseColor(String value, int fallback) {
+        if (value == null) return fallback;
         HologramPalette namedColor = HologramPalette.fromId(value);
         if (namedColor != null) return namedColor.rgb;
         String text = value.trim();
         if (text.startsWith("#")) text = text.substring(1);
-        if (!text.matches("[0-9a-fA-F]{6}")) return DEFAULT_COLOR;
+        if (!text.matches("[0-9a-fA-F]{6}")) return fallback;
         return Integer.parseInt(text, 16);
     }
 }

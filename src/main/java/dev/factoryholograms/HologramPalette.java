@@ -48,10 +48,7 @@ public enum HologramPalette {
 
     /** Returns an opaque RGB background; the renderer supplies its own alpha. */
     public static int panelBackground(int rgb) {
-        int red = (rgb >>> 16) & 0xFF;
-        int green = (rgb >>> 8) & 0xFF;
-        int blue = rgb & 0xFF;
-        // Weighted brightness keeps black and dark custom colors readable on a light panel.
-        return red * 299 + green * 587 + blue * 114 < 128000 ? 0xEEEEEE : 0x101820;
+        // Text has its own color setting; never invert the selected panel color.
+        return rgb & 0xFFFFFF;
     }
 }

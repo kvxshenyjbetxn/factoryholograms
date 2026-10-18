@@ -117,8 +117,9 @@ public final class HologramRenderer {
             drawPanel(layout, inputs.length, outputs.length, color, fade);
             setTextureFade(fade);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            font.drawString(title, (layout.width - font.getStringWidth(title)) / 2, 5, 0xFF000000 | color);
-            if (layout.arrow) font.drawString("->", layout.arrowX, layout.arrowY, 0xFF000000 | color);
+            int textColor = 0xFF000000 | (HologramConfig.textColor & 0xFFFFFF);
+            font.drawString(title, (layout.width - font.getStringWidth(title)) / 2, 5, textColor);
+            if (layout.arrow) font.drawString("->", layout.arrowX, layout.arrowY, textColor);
             for (int i = 0; i < inputs.length; i++) {
                 drawItem(mc, label.getStackInSlot(inputs[i]), HologramLayout.iconX(layout.inputX, i, inputs.length), HologramLayout.iconY(i));
             }
