@@ -15,6 +15,7 @@ public final class HologramConfig {
     public static final int DEFAULT_COLOR = HologramPalette.CYAN.rgb;
     public static final int DEFAULT_TEXT_COLOR = HologramPalette.WHITE.rgb;
     public static boolean enabled = true;
+    public static boolean autoRotate = true;
     public static int renderDistance = DEFAULT_DISTANCE;
     public static float opacity = DEFAULT_OPACITY;
     public static int color = DEFAULT_COLOR;
@@ -37,6 +38,9 @@ public final class HologramConfig {
         Property enabledProperty = configuration.get("display", "enabled", true, "Show all holograms. Also toggled with H or the editor's All button.");
         enabledProperty.setLanguageKey("config.factoryholograms.enabled");
         enabled = enabledProperty.getBoolean(true);
+        Property rotationProperty = configuration.get("display", "autoRotate", true, "Automatically face the camera. Disable to use each hologram's saved yaw and pitch.");
+        rotationProperty.setLanguageKey("config.factoryholograms.autoRotate");
+        autoRotate = rotationProperty.getBoolean(true);
         Property distanceProperty = configuration.get("display", "renderDistance", DEFAULT_DISTANCE, "Global visibility distance in blocks (4-64).");
         distanceProperty.setMinValue(MIN_DISTANCE).setMaxValue(MAX_DISTANCE);
         distanceProperty.setLanguageKey("config.factoryholograms.renderDistance");

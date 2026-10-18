@@ -45,6 +45,7 @@ public final class HologramGui extends GuiContainer {
     private static final int POSITION_RESET = 16;
 
     private static final int POSITION_MODE = 18;
+    private static final int ROTATION_MODE = 19;
     private static final int ACCENT = 0x65E5ED;
     private static final int GHOST_Y = 56;
     private static final int INVENTORY_Y = 160;
@@ -72,6 +73,7 @@ public final class HologramGui extends GuiContainer {
     private boolean repeatStateSaved;
     private boolean previousRepeatState;
     private boolean placementMode;
+    private boolean rotationMode;
 
     public HologramGui(HologramLabel draft, ClientProxy owner) {
         super(new LocalDisplayContainer());
@@ -92,7 +94,7 @@ public final class HologramGui extends GuiContainer {
         clearLocalInput();
         if (contextPlayer == null) contextPlayer = mc.thePlayer;
         guiLeft = placementMode ? width - xSize - 8 : (width - xSize) / 2;
-        guiTop = placementMode ? Math.max(0, height - 190 - 8) : (height - ySize) / 2;
+        guiTop = placementMode ? Math.max(0, height - 210 - 8) : (height - ySize) / 2;
         if (!repeatStateSaved) {
             previousRepeatState = Keyboard.areRepeatEventsEnabled();
             repeatStateSaved = true;
@@ -117,16 +119,18 @@ public final class HologramGui extends GuiContainer {
             buttonList.add(new GuiButton(APPLY, guiLeft + 8, guiTop + 130, 78, 18, text("apply", "Apply")));
             buttonList.add(new GuiButton(DELETE, guiLeft + 90, guiTop + 130, 78, 18, text("delete", "Delete")));
         }
-        for (int axis = 0; axis < 3; axis++) {
+        for (int axis = 0; axis < (rotationMode ? 2 : 3); axis++) {
             int y = guiTop + 32 + axis * 26;
             buttonList.add(new GuiButton(POSITION_FIRST + axis * 2, guiLeft + 198, y, 18, 18, "-"));
             buttonList.add(new GuiButton(POSITION_FIRST + axis * 2 + 1, guiLeft + 278, y, 18, 18, "+"));
         }
         buttonList.add(new GuiButton(POSITION_RESET, guiLeft + 184, guiTop + 116, 112, 18,
-            text("position.reset", "Reset position")));
+            rotationMode ? text("rotation.reset", "Reset angles") : text("position.reset", "Reset position")));
 
         buttonList.add(new GuiButton(POSITION_MODE, guiLeft + 184, guiTop + (placementMode ? 140 : 172), 112, 18,
             placementMode ? text("position.back", "Back to editor") : text("position.preview", "Position preview")));
+        buttonList.add(new GuiButton(ROTATION_MODE, guiLeft + 184, guiTop + (placementMode ? 188 : 196), 112, 18,
+            rotationMode ? text("rotation.position", "Position") : text("rotation.title", "Rotation / tilt")));
         updateGhostPositions();
         updatePositionButtons();
         updateDisplayButton();
@@ -147,6 +151,7 @@ public final class HologramGui extends GuiContainer {
         if (!checkContext()) return;
         titleField.updateCursorCounter();
         updateDisplayButton();
+        updatePositionButtons();
     }
 
     @Override
@@ -168,15 +173,29 @@ public final class HologramGui extends GuiContainer {
             // Re-enter the inherited resolution lifecycle so NEI rebuilds its manager after initGui.
             setWorldAndResolution(mc, width, height);
             return;
+        } else if (button.id == ROTATION_MODE) {
+            getPreviewLabel();
+            rotationMode = !rotationMode;
+            setWorldAndResolution(mc, width, height);
+            return;
         } else if (button.id == POSITION_RESET) {
-            float[] base = HologramPlacement.frontOffsets(draft.getPlacementFace());
-            System.arraycopy(base, 0, offsets, 0, offsets.length);
-
+            if (rotationMode) {
+                draft.setRotation(0, 0);
+            } else {
+                float[] base = HologramPlacement.frontOffsets(draft.getPlacementFace());
+                System.arraycopy(base, 0, offsets, 0, offsets.length);
+            }
         } else if (button.id >= POSITION_FIRST && button.id < POSITION_RESET) {
             int axis = (button.id - POSITION_FIRST) / 2;
-            float step = isShiftKeyDown() ? 1.0F : LabelRules.OFFSET_STEP;
+            float step = rotationMode ? (isShiftKeyDown() ? 15.0F : 5.0F)
+                : (isShiftKeyDown() ? 1.0F : LabelRules.OFFSET_STEP);
             float delta = (button.id - POSITION_FIRST) % 2 == 0 ? -step : step;
-            offsets[axis] = LabelRules.offset(offsets[axis] + delta);
+            if (rotationMode) {
+                if (axis == 0) draft.setRotation(draft.getYaw() + delta, draft.getPitch());
+                else draft.setRotation(draft.getYaw(), draft.getPitch() + delta);
+            } else {
+                offsets[axis] = LabelRules.offset(offsets[axis] + delta);
+            }
         }
         getPreviewLabel();
         updatePositionButtons();
@@ -196,8 +215,12 @@ public final class HologramGui extends GuiContainer {
             GuiButton button = (GuiButton) value;
             int index = button.id - POSITION_FIRST;
             if (index >= 0 && index < 6) {
-                button.enabled = index % 2 == 0 ? offsets[index / 2] > -LabelRules.MAX_OFFSET
-                    : offsets[index / 2] < LabelRules.MAX_OFFSET;
+                float current = rotationMode ? (index / 2 == 0 ? draft.getYaw() : draft.getPitch()) : offsets[index / 2];
+                float limit = rotationMode ? (index / 2 == 0 ? 180.0F : 90.0F) : LabelRules.MAX_OFFSET;
+                button.enabled = (!rotationMode || !HologramConfig.autoRotate)
+                    && (index % 2 == 0 ? current > -limit : current < limit);
+            } else if (button.id == POSITION_RESET) {
+                button.enabled = !rotationMode || !HologramConfig.autoRotate;
             }
         }
     }
@@ -554,8 +577,8 @@ public final class HologramGui extends GuiContainer {
         int x = guiLeft;
         int y = guiTop;
         if (placementMode) {
-            drawRect(x + 184, y, x + 296, y + 190, 0xFF102129);
-            drawRect(x + 185, y + 1, x + 295, y + 189, 0xFF192F38);
+            drawRect(x + 184, y, x + 296, y + 210, 0xFF102129);
+            drawRect(x + 185, y + 1, x + 295, y + 209, 0xFF192F38);
             drawRect(x + 185, y + 1, x + 295, y + 3, 0xFF65E5ED);
             return;
         }
@@ -612,16 +635,21 @@ public final class HologramGui extends GuiContainer {
             drawLabel(text("output", "Output"), 96, 46, ACCENT);
             drawLabel("->", 81, 84, ACCENT);
         }
-        drawLabel(fontRendererObj.trimStringToWidth(text("position.title", "Position"), 112), 184, 10, ACCENT);
-        String[] axes = { "X", "Y", "Z" };
-        float[] position = draft.getPositionOffsets();
-        for (int axis = 0; axis < 3; axis++) {
+        drawLabel(fontRendererObj.trimStringToWidth(rotationMode ? text("rotation.title", "Rotation / tilt")
+            : text("position.title", "Position"), 112), 184, 10, ACCENT);
+        String[] axes = rotationMode ? new String[] { "Y", "P" } : new String[] { "X", "Y", "Z" };
+        float[] position = rotationMode ? new float[] {draft.getYaw(), draft.getPitch()} : draft.getPositionOffsets();
+        for (int axis = 0; axis < position.length; axis++) {
             int y = 37 + axis * 26;
             drawLabel(axes[axis], 184, y, ACCENT);
-            String value = String.format(Locale.ROOT, "%+.2f", position[axis]);
+            String value = String.format(Locale.ROOT, rotationMode ? "%+.0f°" : "%+.2f", position[axis]);
             drawLabel(value, 247 - fontRendererObj.getStringWidth(value) / 2, y, 0xE4F8FA);
         }
-        drawLabel(fontRendererObj.trimStringToWidth(text("position.step", "0.25 (Shift: 1)"), 112),
+        if (rotationMode && HologramConfig.autoRotate) {
+            drawLabel(fontRendererObj.trimStringToWidth(text("rotation.auto", "Auto-rotate on"), 112), 184, 94, 0xB7C9CE);
+        }
+        drawLabel(fontRendererObj.trimStringToWidth(rotationMode ? text("rotation.step", "5° (Shift: 15°)")
+            : text("position.step", "0.25 (Shift: 1)"), 112),
             184, placementMode ? 22 : 137, 0xB7C9CE);
         if (!placementMode) {
             drawLabel(StatCollector.translateToLocal("container.inventory"), 8, INVENTORY_Y - 10, 0xB7C9CE);
@@ -662,8 +690,12 @@ public final class HologramGui extends GuiContainer {
             } else if (!placementMode && y >= 148 && y < 166) {
                 lines.add(text("display.hint", "Only changes visibility on your client."));
             } else if (y >= 32 && y < 110) {
-                String[] axes = { "x", "y", "z" };
-                lines.add(text("position." + axes[(y - 32) / 26], "World axis"));
+                if (rotationMode) {
+                    lines.add(text("rotation.hint", "Y: yaw, P: pitch. Disable auto-rotate in the mod settings to edit angles."));
+                } else {
+                    String[] axes = { "x", "y", "z" };
+                    lines.add(text("position." + axes[(y - 32) / 26], "World axis"));
+                }
             }
             if ((y >= 32 && y < 134) || (y >= modeY && y < modeY + 18)) {
                 lines.add(text("position.live.hint", "Preview updates immediately. Apply saves; Escape discards edits."));

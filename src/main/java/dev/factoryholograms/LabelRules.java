@@ -21,6 +21,11 @@ public final class LabelRules {
         return Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, value));
     }
 
+    public static float angle(float value, float limit) {
+        if (Float.isNaN(value) || Float.isInfinite(value)) return 0.0F;
+        return Math.max(-limit, Math.min(limit, value));
+    }
+
     public static String title(String value) {
         if (value == null) return "";
         StringBuilder clean = new StringBuilder();

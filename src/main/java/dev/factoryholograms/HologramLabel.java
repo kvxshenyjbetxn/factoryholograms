@@ -16,6 +16,7 @@ public class HologramLabel implements IInventory {
     private final ItemStack[] icons = new ItemStack[LabelRules.ICON_SLOTS];
     private String title = "";
     private float offsetX, offsetY, offsetZ;
+    private float yaw, pitch;
     private int placementFace = 3;
     private String blockName = "";
     private int blockMeta;
@@ -42,6 +43,13 @@ public class HologramLabel implements IInventory {
     public float getOffsetX() { return offsetX; }
     public float getOffsetY() { return offsetY; }
     public float getOffsetZ() { return offsetZ; }
+    public float getYaw() { return yaw; }
+    public float getPitch() { return pitch; }
+    public void setRotation(float yaw, float pitch) {
+        this.yaw = LabelRules.angle(yaw, 180.0F);
+        this.pitch = LabelRules.angle(pitch, 90.0F);
+        markDirty();
+    }
     public int getPlacementFace() { return placementFace; }
     public void setPlacementFace(int face) { placementFace = face >= 2 && face <= 5 ? face : 3; }
 
@@ -85,6 +93,8 @@ public class HologramLabel implements IInventory {
         offsetY = other.offsetY;
         offsetZ = other.offsetZ;
         placementFace = other.placementFace;
+        yaw = other.yaw;
+        pitch = other.pitch;
         blockName = other.blockName;
         blockMeta = other.blockMeta;
         for (int i = 0; i < icons.length; i++) icons[i] = other.icons[i] == null ? null : other.icons[i].copy();
@@ -103,6 +113,8 @@ public class HologramLabel implements IInventory {
         tag.setFloat("OffsetX", offsetX);
         tag.setFloat("OffsetY", offsetY);
         tag.setFloat("OffsetZ", offsetZ);
+        tag.setFloat("Yaw", yaw);
+        tag.setFloat("Pitch", pitch);
         NBTTagList list = new NBTTagList();
         for (int i = 0; i < icons.length; i++) {
             if (icons[i] == null) continue;
@@ -115,6 +127,7 @@ public class HologramLabel implements IInventory {
     public static HologramLabel fromNBT(World world, NBTTagCompound tag) {
         HologramLabel label = new HologramLabel(world, tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"), false);
         label.title = LabelRules.title(tag.getString("Title"));
+        label.setRotation(tag.getFloat("Yaw"), tag.getFloat("Pitch"));
         label.offsetX = LabelRules.offset(tag.getFloat("OffsetX"));
         label.offsetY = LabelRules.offset(tag.getFloat("OffsetY"));
         boolean legacy = tag.getInteger("LabelFormat") < 2;

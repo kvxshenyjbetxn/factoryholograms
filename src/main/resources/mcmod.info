@@ -3,7 +3,7 @@
     "modid": "factoryholograms",
     "name": "Factory Holograms",
     "description": "Client-only machine holograms stored locally per server and dimension. Drag ghost icons from inventory or optional NEI. Shift+H edits, H toggles visibility. No server installation required.",
-    "version": "0.7.2",
+    "version": "0.7.3",
     "mcversion": "1.7.10",
     "authorList": ["Factory Holograms contributors"]
   }

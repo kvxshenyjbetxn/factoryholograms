@@ -106,9 +106,14 @@ public final class HologramRenderer {
             GL11.glDepthMask(false);
 
             GL11.glTranslated(x, y, z);
-            GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
-            float pitch = RenderManager.instance.playerViewX;
-            GL11.glRotatef(mc.gameSettings.thirdPersonView == 2 ? -pitch : pitch, 1.0F, 0.0F, 0.0F);
+            if (HologramConfig.autoRotate) {
+                GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
+                float pitch = RenderManager.instance.playerViewX;
+                GL11.glRotatef(mc.gameSettings.thirdPersonView == 2 ? -pitch : pitch, 1.0F, 0.0F, 0.0F);
+            } else {
+                GL11.glRotatef(-label.getYaw(), 0.0F, 1.0F, 0.0F);
+                GL11.glRotatef(label.getPitch(), 1.0F, 0.0F, 0.0F);
+            }
             // Keep GUI item model depth shallow instead of projecting it through nearby walls.
             GL11.glScalef(-PIXEL_SCALE, -PIXEL_SCALE, 0.001F);
             GL11.glTranslatef(-layout.width / 2.0F, -layout.height / 2.0F, 0.0F);

@@ -33,7 +33,42 @@ public class HologramLabelTest {
     @Test public void localLabelSurvivesMetadataChangesWithoutEditingWorld() throws Exception { minecraft.run("localLabelSurvivesMetadataChangesWithoutEditingWorld"); }
     @Test public void registryNamesOverrideObsoleteNumericItemIds() throws Exception { minecraft.run("registryNamesOverrideObsoleteNumericItemIds"); }
 
+    @Test public void rotationPersistsAndCopies() throws Exception { minecraft.run("rotationPersistsAndCopies"); }
+    @Test public void missingAndInvalidRotationsAreSafe() throws Exception { minecraft.run("missingAndInvalidRotationsAreSafe"); }
+
     public static final class Fixture {
+        public static void rotationPersistsAndCopies() {
+            HologramLabel label = new HologramLabel(null, 1, 64, 2);
+            label.setRotation(-135, 45);
+            label.setLabel("Rotated", 1, 2, 3);
+            HologramLabel restored = HologramLabel.fromNBT(null, label.toNBT());
+            HologramLabel cached = new HologramLabel(null, 1, 64, 2);
+            cached.copyFrom(restored);
+            assertEquals(-135, cached.getYaw(), 0);
+            assertEquals(45, cached.getPitch(), 0);
+            assertEquals(1, cached.getOffsetX(), 0);
+            restored.setRotation(0, 0);
+            assertEquals(-135, cached.getYaw(), 0);
+        }
+        public static void missingAndInvalidRotationsAreSafe() {
+            NBTTagCompound tag = new NBTTagCompound();
+            HologramLabel label = HologramLabel.fromNBT(null, tag);
+            assertEquals(0, label.getYaw(), 0);
+            assertEquals(0, label.getPitch(), 0);
+            for (float value : new float[] {Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY}) {
+                tag.setFloat("Yaw", value); tag.setFloat("Pitch", value);
+                label = HologramLabel.fromNBT(null, tag);
+                assertEquals(0, label.getYaw(), 0);
+                assertEquals(0, label.getPitch(), 0);
+            }
+            label.setRotation(1000, -1000);
+            assertEquals(180, label.getYaw(), 0);
+            assertEquals(-90, label.getPitch(), 0);
+            tag.setFloat("Yaw", -1000); tag.setFloat("Pitch", 1000);
+            label = HologramLabel.fromNBT(null, tag);
+            assertEquals(-180, label.getYaw(), 0);
+            assertEquals(90, label.getPitch(), 0);
+        }
         public static void localLabelSurvivesMetadataChangesWithoutEditingWorld() {
             LabelTestSupport.TestWorld world = new LabelTestSupport.TestWorld();
             HologramLabel label = new HologramLabel(world, 0, 64, 0);
