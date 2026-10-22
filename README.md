@@ -1,75 +1,70 @@
 # Factory Holograms
 
-Особисті голографічні підписи для машин та інших блоків у **Minecraft 1.7.10 / Forge**, зокрема **GTNH**.
+[Українською](README.uk.md)
 
-Додавайте назву та іконки входів і виходів, щоб легше орієнтуватися у своїй фабриці. Голограми бачите тільки ви — вони не змінюють блоки чи предмети.
+Personal holographic labels for machines and other blocks in **Minecraft 1.7.10 / Forge**, including **GTNH**. Add a name and input/output item icons to keep your factory readable.
 
-## Встановлення
+**Client-only:** only you see your labels; no server installation is needed. These are manual annotations, not automatic recipe, inventory or machine-progress displays. Real items are never moved or consumed.
 
-1. Відкрийте [останній реліз](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
-2. Завантажте **`factoryholograms-0.7.3.jar`** з розділу **Assets**.
-3. Покладіть файл у папку **`mods/` вашого клієнтського інстансу Minecraft**, видаливши попередній JAR мода.
-4. Запустіть гру.
+## Install
 
-**На сервер нічого встановлювати не потрібно.** GregTech і NEI не обов’язкові. Файли з `dev` або `sources` у назві для встановлення не підходять.
+1. Download **`factoryholograms-0.7.4.jar`** from the [latest release](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
+2. Put it in your Minecraft instance's **`mods/`** folder, removing any older Factory Holograms JAR.
+3. Start the game.
 
-> Якщо на вашому сервері залишився Factory Holograms **0.4.0 або старіший**, перед переходом адміністратору варто зробити резервну копію старих міток і прибрати старий мод із сервера. Старі серверні мітки автоматично не переносяться.
+GregTech and NEI are optional. Do not install files named `dev` or `sources`.
 
-## Як створити голограму
+<details>
+<summary>Upgrading from 0.4.0 or earlier</summary>
 
-1. Наведіться на машину або інший блок з відстані до **6 блоків** і натисніть **Shift+H**.
-2. Введіть назву.
-3. Перетягніть предмети з інвентарю або панелі **NEI** у слоти входу й виходу. Це лише копії іконок: справжні предмети не переміщуються й не витрачаються. Також можна клікнути предмет, а потім потрібний слот.
-4. За потреби налаштуйте положення голограми.
-5. Натисніть **«Готово» / Apply**, щоб зберегти.
+If an old server-side version is still installed, ask the administrator to back up its labels and remove it from the server. Old server labels are not migrated automatically.
 
-На кожен бік можна додати до **16 іконок**, по 4 у ряд. **ПКМ по слоту** прибирає іконку.
+</details>
 
-**Escape скасовує незбережені зміни.** Якщо на курсорі є копія предмета, перше натискання Escape прибирає тільки її.
+## Create a label
 
-Щоб змінити наявну голограму, знову наведіться на **початковий блок** і натисніть Shift+H. Кнопка **«Стерти» / Delete** видаляє лише мітку, не блок.
+1. Look at a nearby machine or block and press **Shift+H** (within 6 blocks, subject to your normal targeting reach).
+2. Enter a name. Drag items from your inventory or **NEI** into the input/output slots, or click an item and then a slot. Only the icon is copied.
+3. Adjust the position if needed, then click **Apply** to save.
 
-## Керування та вигляд
+You can add **16 input icons and 16 output icons**, with 4 per row. **Right-click** a slot to clear it.
 
-| Дія | Клавіша або налаштування |
+To edit a label, target its **original block** and press Shift+H again. **Delete** removes the label, not the block. **Escape discards unsaved changes**; if you are holding a cursor copy, the first Escape only clears that copy.
+
+## Controls and appearance
+
+| Action | Key or setting |
 | --- | --- |
-| Створити або редагувати мітку | **Shift+H** |
-| Сховати / показати всі голограми | **H** |
-| Тимчасово приховати разом з інтерфейсом | **F1** |
-| Перепризначити H | **Controls → Factory Holograms** |
-| Колір, прозорість, дальність, автоповорот | **Mods → Factory Holograms → Config** |
+| Create or edit a label | **Shift+H** |
+| Show / hide all labels | **H** |
+| Hide labels with the HUD | **F1** |
+| Rebind H (Shift uses the same binding) | **Options → Controls → Factory Holograms** |
+| Colors, opacity, distance, auto-rotation | **Mods → Factory Holograms → Config** |
 
-### Положення і поворот
+- New labels are placed near the selected block's side; targeting the top or bottom chooses a side facing you.
+- **X/Y/Z − / +** moves the label by **0.25 blocks**, or **1 block with Shift**. **Reset position** restores its initial placement.
+- **Position preview** hides the large editor so you can see the result. **Back to editor** returns without losing your draft.
+- Labels face the player by default. For manual angles, disable **Automatically face the player** in the config and open **Rotation / tilt** in the editor.
 
-- Нова голограма з’являється біля грані блока, на яку ви навелися.
-- Кнопки **− / +** по **X/Y/Z** рухають її на **0,25 блока**, із **Shift** — на **1 блок**. Результат видно відразу, але зберігається він лише після **«Готово»**.
-- **«Скинути позицію»** повертає до початкового місця біля блока.
-- **«Перегляд позиції»** прибирає велике вікно редактора, щоб було зручніше бачити голограму. **«До редактора»** повертає його без втрати змін.
-- За замовчуванням голограма повертається до гравця. Для ручного повороту вимкніть **«Автоповорот до гравця»** в конфігурації та відкрийте **«Поворот / нахил»** у редакторі.
+Position and angle changes are previewed immediately; **Apply** saves them.
 
-## Збереження та резервні копії
+## Backups and moving to another PC
 
-Мітки зберігаються **на вашому комп’ютері**, окремо для кожного сервера, одиночного світу та виміру. Інші гравці їх не бачать.
+Labels are stored locally, separately for each server, single-player world and dimension. Close the game and copy the **`factoryholograms/`** folder from your instance's game directory to back them up or transfer them. In Prism/MultiMC, use that instance's game directory, not a shared `.minecraft` folder.
 
-Щоб перенести мітки на інший ПК або зробити резервну копію, закрийте гру й скопіюйте папку **`factoryholograms/`** з ігрової папки вашого інстансу. У Prism/MultiMC/GTNH це папка відповідної збірки, а не обов’язково загальна `.minecraft`.
+**`/fholograms path`** shows the current label file's exact path. Subsequent saves keep the previous file as **`.bak`**. Changing the server address or single-player world folder may select a different label store.
 
-Команда **`/fholograms path`** у чаті показує точний шлях до файла поточних міток. Після повторного збереження поруч є резервна копія з розширенням **`.bak`**.
+## Troubleshooting and compatibility
 
-> Після зміни адреси сервера або папки одиночного світу старі мітки можуть не відображатися: для нового місця використовується окреме сховище.
+- **Editor will not open:** move closer, target a block and check for conflicting H key bindings.
+- **Labels are invisible:** use H to show them, turn off F1 mode, and check distance and opacity in the config. Labels do not show through opaque walls.
+- **NEI is missing:** check that NEI is installed and its panel is enabled. You can also use your inventory without NEI.
+- **Edits disappeared:** use **Apply** to save; Escape discards the draft.
 
-## Якщо щось не працює
+Tested by the maintainer on **GTNH 2.9.0 RC-2**. Separate test results for Angelica rendering and NEI on multiplayer servers are not yet documented. Check your server's rules on client mods.
 
-- **Не відкривається редактор:** підійдіть ближче, наведіться на блок і перевірте призначення клавіші H.
-- **Не видно голограм:** натисніть H, вимкніть F1, перевірте дальність і прозорість у конфігурації. Голограми не видно крізь непрозорі стіни.
-- **Не видно NEI:** перевірте, що NEI встановлено та його панель увімкнена. Без NEI можна вибирати іконки зі свого інвентарю.
-- **Зміни зникли після закриття:** для збереження потрібна кнопка **«Готово» / Apply**; Escape скасовує чернетку.
+Report problems in [Issues](https://github.com/kvxshenyjbetxn/factoryholograms/issues), including your pack/mod versions and reproduction steps.
 
-Це ручні підписи, а не автоматичний показ рецептів, ресурсів чи прогресу машин. Перевірте правила вашого сервера щодо клієнтських модів.
+## License and development
 
-Сумісність рендерингу з Angelica та робота NEI на живому сервері ще потребують ручної перевірки. Про проблеми можна повідомити в [Issues](https://github.com/kvxshenyjbetxn/factoryholograms/issues).
-
-## Для розробників
-
-Збірка: `./gradlew build` або `build.bat` у Windows. Gradle потребує **JDK 17–26**; мод компілюється для **Java 8**. Готовий JAR з’являється в `build/libs/`.
-
-Версія **0.7.3**: збірка успішна, **92 автоматичні тести** пройдено. Ігровий рендеринг ці тести не перевіряють.
+[MIT License](LICENSE). Build and contribution instructions: [CONTRIBUTING.md](CONTRIBUTING.md). Release history: [CHANGELOG.md](CHANGELOG.md).

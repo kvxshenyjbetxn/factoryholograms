@@ -1,2 +1,6 @@
 version = project.ext.modVersion
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+tasks.withType(Jar).configureEach {
+    from('LICENSE') { into 'META-INF' }
+}
