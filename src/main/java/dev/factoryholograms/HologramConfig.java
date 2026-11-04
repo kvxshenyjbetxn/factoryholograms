@@ -16,7 +16,8 @@ public final class HologramConfig {
     public static final int DEFAULT_TEXT_COLOR = HologramPalette.WHITE.rgb;
     public static boolean enabled = true;
     public static boolean autoRotate = true;
-    public static int renderDistance = DEFAULT_DISTANCE;
+    public static boolean hoverTooltips = true;
+    public static int renderDistance =DEFAULT_DISTANCE;
     public static float opacity = DEFAULT_OPACITY;
     public static int color = DEFAULT_COLOR;
     public static int textColor = DEFAULT_TEXT_COLOR;
@@ -41,7 +42,10 @@ public final class HologramConfig {
         Property rotationProperty = configuration.get("display", "autoRotate", true, "Automatically face the camera. Disable to use each hologram's saved yaw and pitch.");
         rotationProperty.setLanguageKey("config.factoryholograms.autoRotate");
         autoRotate = rotationProperty.getBoolean(true);
-        Property distanceProperty = configuration.get("display", "renderDistance", DEFAULT_DISTANCE, "Global visibility distance in blocks (4-64).");
+        Property hoverProperty = configuration.get("display", "hoverTooltips", true, "Show an item tooltip when aiming the crosshair at a hologram icon, and allow NEI recipe/usage keys on it.");
+        hoverProperty.setLanguageKey("config.factoryholograms.hoverTooltips");
+        hoverTooltips = hoverProperty.getBoolean(true);
+        Property distanceProperty =configuration.get("display", "renderDistance", DEFAULT_DISTANCE, "Global visibility distance in blocks (4-64).");
         distanceProperty.setMinValue(MIN_DISTANCE).setMaxValue(MAX_DISTANCE);
         distanceProperty.setLanguageKey("config.factoryholograms.renderDistance");
         renderDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, distanceProperty.getInt(DEFAULT_DISTANCE)));

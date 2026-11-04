@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.6
+
+- Aim at an icon in a world hologram to highlight it and see its tooltip next to the crosshair. Hold Shift for the full tooltip.
+- While aiming at an icon, press NEI's recipe (R) or usage (U) key to open its recipes or uses.
+- New `hoverTooltips` config option to turn this off.
+
 ## 0.7.5
 
 - Icons can now be dragged or clicked from NEI's recently viewed (history) and craftables panels.

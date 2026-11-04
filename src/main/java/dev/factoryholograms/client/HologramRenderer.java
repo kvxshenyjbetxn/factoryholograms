@@ -29,6 +29,7 @@ import dev.factoryholograms.HologramConfig;
 import dev.factoryholograms.HologramLabel;
 import dev.factoryholograms.HologramLayout;
 import dev.factoryholograms.HologramPalette;
+import dev.factoryholograms.HologramPick;
 import dev.factoryholograms.HologramPlacement;
 
 
@@ -44,10 +45,74 @@ public final class HologramRenderer {
     private final FloatBuffer fadeColor = BufferUtils.createFloatBuffer(4);
 
     public void render(HologramLabel label, double cameraX, double cameraY, double cameraZ, float eyeHeight) {
-        render(label, cameraX, cameraY, cameraZ, eyeHeight, false);
+        render(label, cameraX, cameraY, cameraZ, eyeHeight, false, -1);
     }
 
     public void render(HologramLabel label, double cameraX, double cameraY, double cameraZ, float eyeHeight, boolean preview) {
+        render(label, cameraX, cameraY, cameraZ, eyeHeight, preview, -1);
+    }
+
+    /** Fade in [0, 1]; 0 when out of range or invisible. */
+    private static float visibleFade(double distanceSquared, boolean preview) {
+        int range = Math.max(4, Math.min(64, HologramConfig.renderDistance));
+        if (!preview && distanceSquared >= range * range) return 0.0F;
+        double fadeRange = Math.min(4.0D, range * 0.25D);
+        float opacity = Math.max(0.0F, Math.min(1.0F, HologramConfig.opacity));
+        // An edited draft remains findable even outside display range or at zero global opacity.
+        float fade = preview ? Math.max(0.35F, opacity)
+            : (float) Math.min(1.0D, (range - Math.sqrt(distanceSquared)) / fadeRange) * opacity;
+        return fade <= 0.003F ? 0.0F : fade;
+    }
+
+    private static HologramLayout layoutFor(HologramLabel label, int inputs, int outputs, FontRenderer font) {
+        return new HologramLayout(inputs, outputs, font.getStringWidth(titleFor(label, font)));
+    }
+
+    private static String titleFor(HologramLabel label, FontRenderer font) {
+        String title = label.getTitle();
+        if (title == null || title.length() == 0) {
+            String key = "gui.factoryholograms.title";
+            title = StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : "Factory Holograms";
+        }
+        if (font.getStringWidth(title) > MAX_TITLE_WIDTH) {
+            title = font.trimStringToWidth(title, MAX_TITLE_WIDTH - font.getStringWidth("...")) + "...";
+        }
+        return title;
+    }
+
+    /** {yaw, pitch} exactly as passed to glRotatef(-yaw, y) then glRotatef(pitch, x). */
+    private static float[] rotationFor(Minecraft mc, HologramLabel label) {
+        if (HologramConfig.autoRotate) {
+            float pitch = RenderManager.instance.playerViewX;
+            return new float[] {RenderManager.instance.playerViewY, mc.gameSettings.thirdPersonView == 2 ? -pitch : pitch};
+        }
+        return new float[] {label.getYaw(), label.getPitch()};
+    }
+
+    /** Ray (absolute world coordinates, direction normalized) against one label's icons. */
+    public HologramHover pick(HologramLabel label, double ox, double oy, double oz, double dx, double dy, double dz) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (!HologramConfig.enabled || mc.gameSettings.hideGUI || mc.theWorld == null
+            || label.getWorld() != mc.theWorld || label.isEmpty()) return null;
+        double cx = HologramPlacement.centerX(label), cy = HologramPlacement.centerY(label), cz = HologramPlacement.centerZ(label);
+        double ex = cx - ox, ey = cy - oy, ez = cz - oz;
+        if (visibleFade(ex * ex + ey * ey + ez * ez, false) <= 0.0F) return null;
+        int[] inputs = label.occupiedSlots(false);
+        int[] outputs = label.occupiedSlots(true);
+        HologramLayout layout = layoutFor(label, inputs.length, outputs.length, mc.fontRenderer);
+        float[] rotation = rotationFor(mc, label);
+        double[] hit = HologramPick.panelHit(ox, oy, oz, dx, dy, dz, cx, cy, cz, rotation[0], rotation[1],
+            PIXEL_SCALE, layout.width, layout.height);
+        if (hit == null) return null;
+        int slot = HologramPick.slotAt(layout, inputs.length, outputs.length, hit[1], hit[2]);
+        if (slot < 0) return null;
+        ItemStack stack = label.getStackInSlot(slot < inputs.length ? inputs[slot] : outputs[slot - inputs.length]);
+        if (stack == null || stack.getItem() == null) return null;
+        return new HologramHover(label, slot, stack, hit[0]);
+    }
+
+    public void render(HologramLabel label, double cameraX, double cameraY, double cameraZ, float eyeHeight,
+        boolean preview, int hoveredSlot) {
         Minecraft mc = Minecraft.getMinecraft();
         if ((!HologramConfig.enabled && !preview) || mc.gameSettings.hideGUI || mc.theWorld == null
             || label.getWorld() != mc.theWorld || (label.isEmpty() && !preview)) return;
@@ -60,27 +125,13 @@ public final class HologramRenderer {
         double dy = y - eyeHeight;
         double dz = z;
         double distanceSquared = dx * dx + dy * dy + dz * dz;
-        int range = Math.max(4, Math.min(64, HologramConfig.renderDistance));
-        if (!preview && distanceSquared >= range * range) return;
-
-        double fadeRange = Math.min(4.0D, range * 0.25D);
-        float opacity = Math.max(0.0F, Math.min(1.0F, HologramConfig.opacity));
-        // An edited draft remains findable even outside display range or at zero global opacity.
-        float fade = preview ? Math.max(0.35F, opacity)
-            : (float) Math.min(1.0D, (range - Math.sqrt(distanceSquared)) / fadeRange) * opacity;
-        if (fade <= 0.003F) return;
+        float fade = visibleFade(distanceSquared, preview);
+        if (fade <= 0.0F) return;
 
         int[] inputs = label.occupiedSlots(false);
         int[] outputs = label.occupiedSlots(true);
         FontRenderer font = mc.fontRenderer;
-        String title = label.getTitle();
-        if (title == null || title.length() == 0) {
-            String key = "gui.factoryholograms.title";
-            title = StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : "Factory Holograms";
-        }
-        if (font.getStringWidth(title) > MAX_TITLE_WIDTH) {
-            title = font.trimStringToWidth(title, MAX_TITLE_WIDTH - font.getStringWidth("...")) + "...";
-        }
+        String title = titleFor(label, font);
         HologramLayout layout = new HologramLayout(inputs.length, outputs.length, font.getStringWidth(title));
         int previousMatrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
         int previousTextureUnit = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
@@ -106,14 +157,9 @@ public final class HologramRenderer {
             GL11.glDepthMask(false);
 
             GL11.glTranslated(x, y, z);
-            if (HologramConfig.autoRotate) {
-                GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
-                float pitch = RenderManager.instance.playerViewX;
-                GL11.glRotatef(mc.gameSettings.thirdPersonView == 2 ? -pitch : pitch, 1.0F, 0.0F, 0.0F);
-            } else {
-                GL11.glRotatef(-label.getYaw(), 0.0F, 1.0F, 0.0F);
-                GL11.glRotatef(label.getPitch(), 1.0F, 0.0F, 0.0F);
-            }
+            float[] rotation = rotationFor(mc, label);
+            GL11.glRotatef(-rotation[0], 0.0F, 1.0F, 0.0F);
+            GL11.glRotatef(rotation[1], 1.0F, 0.0F, 0.0F);
             // Keep GUI item model depth shallow instead of projecting it through nearby walls.
             GL11.glScalef(-PIXEL_SCALE, -PIXEL_SCALE, 0.001F);
             GL11.glTranslatef(-layout.width / 2.0F, -layout.height / 2.0F, 0.0F);
@@ -130,6 +176,18 @@ public final class HologramRenderer {
             }
             for (int i = 0; i < outputs.length; i++) {
                 drawItem(mc, label.getStackInSlot(outputs[i]), HologramLayout.iconX(layout.outputX, i, outputs.length), HologramLayout.iconY(i));
+            }
+            if (hoveredSlot >= 0 && hoveredSlot < inputs.length + outputs.length) {
+                boolean input = hoveredSlot < inputs.length;
+                int index = input ? hoveredSlot : hoveredSlot - inputs.length;
+                int count = input ? inputs.length : outputs.length;
+                int slotX = HologramLayout.iconX(input ? layout.inputX : layout.outputX, index, count);
+                int slotY = HologramLayout.iconY(index);
+                GL11.glDisable(GL11.GL_TEXTURE_2D);
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                rectangle(slotX, slotY, slotX + 16, slotY + 16, 0xFFFFFF, 0.35F * fade);
+                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             }
         } finally {
             // glPopAttrib alone does not restore OpenGlHelper's cached brightness values or matrices.
