@@ -59,8 +59,8 @@ public class LabelRulesTest {
         assertEquals(1024, LabelRules.MAX_ICON_BYTES);
         assertEquals(4, LabelRules.ICONS_PER_ROW);
         assertEquals(16, LabelRules.ICONS_PER_SIDE);
-        assertEquals(32, LabelRules.ICON_SLOTS);
-        assertEquals(6 * 1024, LabelRules.MAX_LABEL_ICON_BYTES);
+        assertEquals(256, LabelRules.ICON_SLOTS);
+        assertEquals(16 * 1024, LabelRules.MAX_LABEL_ICON_BYTES);
         assertEquals(512 * 1024, LabelRules.MAX_SYNC_BYTES);
     }
 

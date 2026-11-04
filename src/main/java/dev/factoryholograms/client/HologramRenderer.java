@@ -64,16 +64,22 @@ public final class HologramRenderer {
         return fade <= 0.003F ? 0.0F : fade;
     }
 
-    private static HologramLayout layoutFor(HologramLabel label, int inputs, int outputs, FontRenderer font) {
-        return new HologramLayout(inputs, outputs, font.getStringWidth(titleFor(label, font)));
+    private static HologramLayout layoutFor(HologramLabel label, FontRenderer font) {
+        int[] recipes = label.visibleRecipes();
+        int[][] inputs = new int[recipes.length][];
+        int[][] outputs = new int[recipes.length][];
+        int[] nameWidths = new int[recipes.length];
+        for (int i = 0; i < recipes.length; i++) {
+            inputs[i] = label.occupiedSlots(recipes[i], false);
+            outputs[i] = label.occupiedSlots(recipes[i], true);
+            nameWidths[i] = font.getStringWidth(label.getRecipeName(recipes[i]));
+        }
+        return new HologramLayout(inputs, outputs, nameWidths, font.getStringWidth(titleFor(label, font)));
     }
 
     private static String titleFor(HologramLabel label, FontRenderer font) {
         String title = label.getTitle();
-        if (title == null || title.length() == 0) {
-            String key = "gui.factoryholograms.title";
-            title = StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : "Factory Holograms";
-        }
+        if (title == null || title.trim().isEmpty()) return "";
         if (font.getStringWidth(title) > MAX_TITLE_WIDTH) {
             title = font.trimStringToWidth(title, MAX_TITLE_WIDTH - font.getStringWidth("...")) + "...";
         }
@@ -97,16 +103,14 @@ public final class HologramRenderer {
         double cx = HologramPlacement.centerX(label), cy = HologramPlacement.centerY(label), cz = HologramPlacement.centerZ(label);
         double ex = cx - ox, ey = cy - oy, ez = cz - oz;
         if (visibleFade(ex * ex + ey * ey + ez * ez, false) <= 0.0F) return null;
-        int[] inputs = label.occupiedSlots(false);
-        int[] outputs = label.occupiedSlots(true);
-        HologramLayout layout = layoutFor(label, inputs.length, outputs.length, mc.fontRenderer);
+        HologramLayout layout = layoutFor(label, mc.fontRenderer);
         float[] rotation = rotationFor(mc, label);
         double[] hit = HologramPick.panelHit(ox, oy, oz, dx, dy, dz, cx, cy, cz, rotation[0], rotation[1],
             PIXEL_SCALE, layout.width, layout.height);
         if (hit == null) return null;
-        int slot = HologramPick.slotAt(layout, inputs.length, outputs.length, hit[1], hit[2]);
+        int slot = HologramPick.slotAt(layout, hit[1], hit[2]);
         if (slot < 0) return null;
-        ItemStack stack = label.getStackInSlot(slot < inputs.length ? inputs[slot] : outputs[slot - inputs.length]);
+        ItemStack stack = label.getStackInSlot(slot);
         if (stack == null || stack.getItem() == null) return null;
         return new HologramHover(label, slot, stack, hit[0]);
     }
@@ -128,11 +132,9 @@ public final class HologramRenderer {
         float fade = visibleFade(distanceSquared, preview);
         if (fade <= 0.0F) return;
 
-        int[] inputs = label.occupiedSlots(false);
-        int[] outputs = label.occupiedSlots(true);
         FontRenderer font = mc.fontRenderer;
         String title = titleFor(label, font);
-        HologramLayout layout = new HologramLayout(inputs.length, outputs.length, font.getStringWidth(title));
+        HologramLayout layout = layoutFor(label, font);
         int previousMatrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
         int previousTextureUnit = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
         float previousLightX = OpenGlHelper.lastBrightnessX;
@@ -165,24 +167,25 @@ public final class HologramRenderer {
             GL11.glTranslatef(-layout.width / 2.0F, -layout.height / 2.0F, 0.0F);
 
             int color = HologramConfig.color & 0xFFFFFF;
-            drawPanel(layout, inputs.length, outputs.length, color, fade);
+            drawPanel(layout, color, fade);
             setTextureFade(fade);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             int textColor = 0xFF000000 | (HologramConfig.textColor & 0xFFFFFF);
             font.drawString(title, (layout.width - font.getStringWidth(title)) / 2, 5, textColor);
-            if (layout.arrow) font.drawString("->", layout.arrowX, layout.arrowY, textColor);
-            for (int i = 0; i < inputs.length; i++) {
-                drawItem(mc, label.getStackInSlot(inputs[i]), HologramLayout.iconX(layout.inputX, i, inputs.length), HologramLayout.iconY(i));
+            int[] shownRecipes = label.visibleRecipes();
+            int nameColor = 0xFF000000 | brighten(HologramConfig.textColor & 0xFFFFFF, 0.75F);
+            for (int b = 0; b < layout.bandCount(); b++) {
+                if (layout.hasName(b)) {
+                    String name = label.getRecipeName(shownRecipes[b]);
+                    font.drawString(name, (layout.width - font.getStringWidth(name)) / 2, layout.nameY(b) + 1, nameColor);
+                }
+                if (layout.hasArrow(b)) font.drawString("->", layout.arrowX, layout.arrowY(b), textColor);
             }
-            for (int i = 0; i < outputs.length; i++) {
-                drawItem(mc, label.getStackInSlot(outputs[i]), HologramLayout.iconX(layout.outputX, i, outputs.length), HologramLayout.iconY(i));
-            }
-            if (hoveredSlot >= 0 && hoveredSlot < inputs.length + outputs.length) {
-                boolean input = hoveredSlot < inputs.length;
-                int index = input ? hoveredSlot : hoveredSlot - inputs.length;
-                int count = input ? inputs.length : outputs.length;
-                int slotX = HologramLayout.iconX(input ? layout.inputX : layout.outputX, index, count);
-                int slotY = HologramLayout.iconY(index);
+            int[] shown = layout.allSlots();
+            for (int slot : shown) drawItem(mc, label.getStackInSlot(slot), layout.slotX(slot), layout.slotY(slot));
+            if (hoveredSlot >= 0 && layout.hasSlot(hoveredSlot)) {
+                int slotX = layout.slotX(hoveredSlot);
+                int slotY = layout.slotY(hoveredSlot);
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
                 GL11.glEnable(GL11.GL_BLEND);
                 GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -201,7 +204,12 @@ public final class HologramRenderer {
     }
 
 
-    private void drawPanel(HologramLayout layout, int inputs, int outputs, int color, float fade) {
+    private static int brighten(int rgb, float factor) {
+        int red = (int) (((rgb >> 16) & 255) * factor), green = (int) (((rgb >> 8) & 255) * factor), blue = (int) ((rgb & 255) * factor);
+        return (red << 16) | (green << 8) | blue;
+    }
+
+    private void drawPanel(HologramLayout layout, int color, float fade) {
         int width = layout.width;
         int height = layout.height;
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -210,8 +218,10 @@ public final class HologramRenderer {
         rectangle(0, height - 1, width, height, color, 0.55F * fade);
         rectangle(0, 1, 1, height - 1, color, 0.55F * fade);
         rectangle(width - 1, 1, width, height - 1, color, 0.55F * fade);
-        for (int i = 0; i < inputs; i++) slot(HologramLayout.iconX(layout.inputX, i, inputs), HologramLayout.iconY(i), color, fade);
-        for (int i = 0; i < outputs; i++) slot(HologramLayout.iconX(layout.outputX, i, outputs), HologramLayout.iconY(i), color, fade);
+        for (int b = 0; b < layout.bandCount() - 1; b++) {
+            rectangle(4, layout.separatorY(b), width - 4, layout.separatorY(b) + 1, color, 0.50F * fade);
+        }
+        for (int slot : layout.allSlots()) slot(layout.slotX(slot), layout.slotY(slot), color, fade);
     }
 
     private void slot(int x, int y, int color, float fade) {

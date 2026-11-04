@@ -20,7 +20,7 @@ Tested on **GTNH 2.9.0 RC-2**. Works without GregTech or NEI.
 2. Enter a name and drag item icons from your inventory or **NEI** into the input/output slots.
 3. Adjust the position if needed and click **Apply**.
 
-Real items stay in place. Each label holds up to **16 input icons and 16 output icons**. Right-click a slot to clear it.
+Real items stay in place. Each label holds up to **8 recipes**, each with up to **16 input icons and 16 output icons**; switch recipes with the arrows above the slots and give each one an optional name. Right-click a slot to clear it.
 
 - **Shift+H** on the original block — edit its label.
 - **H** — show or hide all labels.

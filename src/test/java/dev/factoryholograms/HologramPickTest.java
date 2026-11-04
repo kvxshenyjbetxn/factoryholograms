@@ -38,11 +38,18 @@ public class HologramPickTest {
     }
 
     @Test public void slotAtFindsInputOutputAndGap() {
-        HologramLayout layout = new HologramLayout(1, 1, 0);
-        assertEquals(0, HologramPick.slotAt(layout, 1, 1, 8 + 8, 18 + 8));
-        assertEquals(1, HologramPick.slotAt(layout, 1, 1, 46 + 8, 18 + 8));
-        assertEquals(-1, HologramPick.slotAt(layout, 1, 1, 35, 26));
-        assertEquals(0, HologramPick.slotAt(layout, 1, 1, 7, 17));
-        assertEquals(-1, HologramPick.slotAt(layout, 1, 1, 6.9, 26));
+        HologramLayout layout = new HologramLayout(1, 1, 20);
+        assertEquals(0, HologramPick.slotAt(layout, 8 + 8, 18 + 8));
+        assertEquals(16, HologramPick.slotAt(layout, 46 + 8, 18 + 8));
+        assertEquals(-1, HologramPick.slotAt(layout, 35, 26));
+        assertEquals(0, HologramPick.slotAt(layout, 7, 17));
+        assertEquals(-1, HologramPick.slotAt(layout, 6.9, 26));
+    }
+
+    @Test public void slotAtReturnsGlobalSlotInSecondBand() {
+        HologramLayout layout = new HologramLayout(new int[][] {{0}, {32}}, new int[][] {{16}, {48}}, 20);
+        int y = layout.slotY(48);
+        assertEquals(48, HologramPick.slotAt(layout, layout.slotX(48) + 8, y + 8));
+        assertEquals(32, HologramPick.slotAt(layout, layout.slotX(32) + 8, y + 8));
     }
 }

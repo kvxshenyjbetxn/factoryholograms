@@ -36,7 +36,79 @@ public class HologramLabelTest {
     @Test public void rotationPersistsAndCopies() throws Exception { minecraft.run("rotationPersistsAndCopies"); }
     @Test public void missingAndInvalidRotationsAreSafe() throws Exception { minecraft.run("missingAndInvalidRotationsAreSafe"); }
 
+    @Test public void threeRecipesRoundTrip() throws Exception { minecraft.run("threeRecipesRoundTrip"); }
+    @Test public void formatTwoLabelLoadsAsOneRecipe() throws Exception { minecraft.run("formatTwoLabelLoadsAsOneRecipe"); }
+    @Test public void removeRecipeShiftsIcons() throws Exception { minecraft.run("removeRecipeShiftsIcons"); }
+
+    @Test public void recipeNamesRoundTripAndShift() throws Exception { minecraft.run("recipeNamesRoundTripAndShift"); }
+    @Test public void namedRecipeWithoutIconsStaysVisible() throws Exception { minecraft.run("namedRecipeWithoutIconsStaysVisible"); }
+
     public static final class Fixture {
+        public static void recipeNamesRoundTripAndShift() {
+            HologramLabel label = new HologramLabel(null, 0, 64, 0);
+            label.addRecipe(); label.addRecipe();
+            label.setRecipeName(0, "  Smelt  "); label.setRecipeName(2, "Alloy");
+            assertEquals("Smelt", label.getRecipeName(0));
+            HologramLabel restored = HologramLabel.fromNBT(null, label.toNBT());
+            assertEquals(3, restored.getRecipeCount());
+            assertEquals("Smelt", restored.getRecipeName(0)); assertEquals("", restored.getRecipeName(1));
+            assertEquals("Alloy", restored.getRecipeName(2));
+            HologramLabel copy = new HologramLabel(null, 0, 64, 0); copy.copyFrom(restored);
+            assertEquals("Alloy", copy.getRecipeName(2));
+            restored.removeRecipe(1);
+            assertEquals("Alloy", restored.getRecipeName(1)); assertEquals("", restored.getRecipeName(2));
+            assertFalse(new HologramLabel(null, 0, 64, 0).toNBT().hasKey("RecipeNames"));
+            char[] longName = new char[100]; java.util.Arrays.fill(longName, 'a');
+            copy.setRecipeName(0, new String(longName));
+            assertEquals(LabelRules.MAX_RECIPE_NAME, copy.getRecipeName(0).length());
+        }
+        public static void namedRecipeWithoutIconsStaysVisible() {
+            HologramLabel label = new HologramLabel(null, 0, 64, 0);
+            label.addRecipe();
+            label.setInventorySlotContents(0, new ItemStack(Items.dye, 1, 1));
+            label.setRecipeName(1, "Only name");
+            assertArrayEquals(new int[] {0, 1}, label.visibleRecipes());
+            assertFalse(label.isRecipeEmpty(1));
+        }
+        public static void threeRecipesRoundTrip() {
+            HologramLabel label = new HologramLabel(null, 0, 64, 0);
+            assertEquals(1, label.getRecipeCount());
+            label.setInventorySlotContents(0, new ItemStack(Items.dye, 1, 1));
+            assertEquals(1, label.addRecipe()); assertEquals(2, label.addRecipe());
+            label.setInventorySlotContents(LabelRules.slot(1, 16), new ItemStack(Items.dye, 1, 2));
+            label.setInventorySlotContents(LabelRules.slot(2, 3), new ItemStack(Items.dye, 1, 3));
+            HologramLabel restored = HologramLabel.fromNBT(null, label.toNBT());
+            assertEquals(3, restored.getRecipeCount());
+            assertEquals(2, restored.getStackInSlot(LabelRules.slot(1, 16)).getItemDamage());
+            assertEquals(3, restored.getStackInSlot(LabelRules.slot(2, 3)).getItemDamage());
+            assertArrayEquals(new int[] {0, 1, 2}, restored.visibleRecipes());
+            HologramLabel copy = new HologramLabel(null, 0, 64, 0); copy.copyFrom(restored);
+            assertEquals(3, copy.getRecipeCount());
+            for (int i = 3; i < LabelRules.MAX_RECIPES; i++) assertEquals(i, restored.addRecipe());
+            assertEquals(-1, restored.addRecipe());
+        }
+        public static void formatTwoLabelLoadsAsOneRecipe() {
+            HologramLabel label = new HologramLabel(null, 0, 64, 0);
+            label.setInventorySlotContents(0, new ItemStack(Items.dye, 1, 1));
+            label.setInventorySlotContents(31, new ItemStack(Items.dye, 1, 2));
+            NBTTagCompound tag = label.toNBT();
+            tag.setInteger("LabelFormat", 2); tag.removeTag("Recipes");
+            HologramLabel old = HologramLabel.fromNBT(null, tag);
+            assertEquals(1, old.getRecipeCount());
+            assertEquals(2, old.getStackInSlot(31).getItemDamage());
+        }
+        public static void removeRecipeShiftsIcons() {
+            HologramLabel label = new HologramLabel(null, 0, 64, 0);
+            label.addRecipe(); label.addRecipe();
+            for (int r = 0; r < 3; r++) label.setInventorySlotContents(LabelRules.slot(r, 0), new ItemStack(Items.dye, 1, r));
+            label.removeRecipe(1);
+            assertEquals(2, label.getRecipeCount());
+            assertEquals(0, label.getStackInSlot(0).getItemDamage());
+            assertEquals(2, label.getStackInSlot(LabelRules.slot(1, 0)).getItemDamage());
+            assertNull(label.getStackInSlot(LabelRules.slot(2, 0)));
+            label.removeRecipe(1); label.removeRecipe(0);
+            assertEquals(1, label.getRecipeCount()); assertTrue(label.isRecipeEmpty(0));
+        }
         public static void rotationPersistsAndCopies() {
             HologramLabel label = new HologramLabel(null, 1, 64, 2);
             label.setRotation(-135, 45);
@@ -111,10 +183,10 @@ public class HologramLabelTest {
         }
         public static void allThirtyTwoIconsPersistAndStayWithinBudget() {
             HologramLabel label = new HologramLabel(null, 0, 64, 0);
-            for (int i = 0; i < LabelRules.ICON_SLOTS; i++) label.setInventorySlotContents(i, stack(64));
+            for (int i = 0; i < LabelRules.SLOTS_PER_RECIPE; i++) label.setInventorySlotContents(i, stack(64));
             HologramLabel restored = HologramLabel.fromNBT(null, label.toNBT());
             assertEquals(16, restored.occupiedSlots(false).length); assertEquals(16, restored.occupiedSlots(true).length);
-            for (int i = 0; i < LabelRules.ICON_SLOTS; i++) assertEquals(1, restored.getStackInSlot(i).stackSize);
+            for (int i = 0; i < LabelRules.SLOTS_PER_RECIPE; i++) assertEquals(1, restored.getStackInSlot(i).stackSize);
             HologramLabel large = new HologramLabel(null, 0, 64, 0);
             ItemStack heavy = stack(64); heavy.getTagCompound().setByteArray("data", new byte[800]);
             for (int i = 0; i < LabelRules.ICON_SLOTS; i++) large.setInventorySlotContents(i, heavy);

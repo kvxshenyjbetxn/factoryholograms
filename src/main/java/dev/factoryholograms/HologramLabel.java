@@ -20,7 +20,12 @@ public class HologramLabel implements IInventory {
     private int placementFace = 3;
     private String blockName = "";
     private int blockMeta;
+    private int recipeCount = 1;
+    private final String[] recipeNames = new String[LabelRules.MAX_RECIPES];
 
+    {
+        java.util.Arrays.fill(recipeNames, "");
+    }
 
     public HologramLabel(World world, int x, int y, int z) {
         this(world, x, y, z, true);
@@ -97,6 +102,8 @@ public class HologramLabel implements IInventory {
         pitch = other.pitch;
         blockName = other.blockName;
         blockMeta = other.blockMeta;
+        recipeCount = other.recipeCount;
+        System.arraycopy(other.recipeNames, 0, recipeNames, 0, recipeNames.length);
         for (int i = 0; i < icons.length; i++) icons[i] = other.icons[i] == null ? null : other.icons[i].copy();
     }
 
@@ -108,7 +115,8 @@ public class HologramLabel implements IInventory {
         tag.setString("Block", blockName);
         tag.setInteger("Meta", blockMeta);
         tag.setString("Title", title);
-        tag.setInteger("LabelFormat", 2);
+        tag.setInteger("LabelFormat", 3);
+        tag.setInteger("Recipes", recipeCount);
         tag.setInteger("PlacementFace", placementFace);
         tag.setFloat("OffsetX", offsetX);
         tag.setFloat("OffsetY", offsetY);
@@ -121,6 +129,13 @@ public class HologramLabel implements IInventory {
             list.appendTag(iconTag(icons[i], i));
         }
         tag.setTag("Icons", list);
+        boolean named = false;
+        NBTTagList names = new NBTTagList();
+        for (int r = 0; r < recipeCount; r++) {
+            names.appendTag(new net.minecraft.nbt.NBTTagString(recipeNames[r]));
+            named |= !recipeNames[r].isEmpty();
+        }
+        if (named) tag.setTag("RecipeNames", names);
         return tag;
     }
 
@@ -170,11 +185,75 @@ public class HologramLabel implements IInventory {
             if (stack != null) { stack.stackSize = 1; iconBytes += bytes; }
             label.icons[slot] = stack;
         }
+        int highestNamed = -1;
+        if (tag.hasKey("RecipeNames", 9)) {
+            NBTTagList names = tag.getTagList("RecipeNames", 8);
+            for (int r = 0; r < Math.min(LabelRules.MAX_RECIPES, names.tagCount()); r++) {
+                label.recipeNames[r] = LabelRules.recipeName(names.getStringTagAt(r));
+                if (!label.recipeNames[r].isEmpty()) highestNamed = r;
+            }
+        }
+        int highest = -1;
+        for (int i = 0; i < label.icons.length; i++) if (label.icons[i] != null) highest = i;
+        int stored = tag.hasKey("Recipes", 3) ? tag.getInteger("Recipes") : 1;
+        label.recipeCount = Math.max(1, Math.min(LabelRules.MAX_RECIPES,
+            Math.max(Math.max(stored, highestNamed + 1), highest < 0 ? 1 : LabelRules.recipeOf(highest) + 1)));
         return label;
     }
 
-    public int[] occupiedSlots(boolean output) {
-        int start = output ? LabelRules.ICONS_PER_SIDE : 0;
+    public int getRecipeCount() { return recipeCount; }
+
+    /** Appends an empty recipe; returns its index, or -1 at the limit. */
+    public int addRecipe() {
+        if (recipeCount >= LabelRules.MAX_RECIPES) return -1;
+        return recipeCount++;
+    }
+
+    /** Clears recipe r and shifts later recipes down; the last remaining recipe is only cleared. */
+    public void removeRecipe(int r) {
+        if (r < 0 || r >= recipeCount) return;
+        int from = LabelRules.slot(r, 0);
+        int span = LabelRules.SLOTS_PER_RECIPE;
+        System.arraycopy(icons, from + span, icons, from, icons.length - from - span);
+        for (int i = icons.length - span; i < icons.length; i++) icons[i] = null;
+        System.arraycopy(recipeNames, r + 1, recipeNames, r, recipeNames.length - r - 1);
+        recipeNames[recipeNames.length - 1] = "";
+        if (recipeCount > 1) recipeCount--;
+        markDirty();
+    }
+
+    public boolean isRecipeEmpty(int r) {
+        if (r < 0 || r >= LabelRules.MAX_RECIPES) return true;
+        if (!recipeNames[r].isEmpty()) return false;
+        for (int i = 0; i < LabelRules.SLOTS_PER_RECIPE; i++) if (icons[LabelRules.slot(r, i)] != null) return false;
+        return true;
+    }
+
+    public String getRecipeName(int r) { return r < 0 || r >= recipeNames.length ? "" : recipeNames[r]; }
+
+    public void setRecipeName(int r, String name) {
+        if (r < 0 || r >= recipeNames.length) return;
+        recipeNames[r] = LabelRules.recipeName(name);
+        if (!recipeNames[r].isEmpty() && r >= recipeCount) recipeCount = r + 1;
+        markDirty();
+    }
+
+    /** Indices of recipes that have at least one icon, in order. */
+    public int[] visibleRecipes() {
+        int count = 0;
+        for (int r = 0; r < recipeCount; r++) if (!isRecipeEmpty(r)) count++;
+        int[] result = new int[count];
+        int index = 0;
+        for (int r = 0; r < recipeCount; r++) if (!isRecipeEmpty(r)) result[index++] = r;
+        return result;
+    }
+
+    /** Occupied global slots of recipe 0. */
+    public int[] occupiedSlots(boolean output) { return occupiedSlots(0, output); }
+
+    /** Occupied global slots of one side of a recipe. */
+    public int[] occupiedSlots(int recipe, boolean output) {
+        int start = LabelRules.slot(recipe, output ? LabelRules.ICONS_PER_SIDE : 0);
         int count = 0;
         for (int i = start; i < start + LabelRules.ICONS_PER_SIDE; i++) if (icons[i] != null) count++;
         int[] slots = new int[count];
@@ -186,7 +265,7 @@ public class HologramLabel implements IInventory {
     public boolean isSlotVisible(int slot) {
         if (slot < 0 || slot >= icons.length) return false;
         if (icons[slot] != null) return true;
-        int start = slot < LabelRules.ICONS_PER_SIDE ? 0 : LabelRules.ICONS_PER_SIDE;
+        int start = slot - (LabelRules.isInputSlot(slot) ? LabelRules.localSlot(slot) : LabelRules.localSlot(slot) - LabelRules.ICONS_PER_SIDE);
         for (int i = start; i < slot; i++) if (icons[i] == null) return false;
         return true;
     }
@@ -228,6 +307,7 @@ public class HologramLabel implements IInventory {
             if (bytes > LabelRules.MAX_LABEL_ICON_BYTES) return;
         }
         icons[slot] = copy;
+        if (copy != null && LabelRules.recipeOf(slot) >= recipeCount) recipeCount = LabelRules.recipeOf(slot) + 1;
         markDirty();
     }
 }

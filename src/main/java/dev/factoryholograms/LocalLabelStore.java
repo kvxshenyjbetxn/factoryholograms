@@ -170,8 +170,18 @@ public final class LocalLabelStore {
         try { checkPosition(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z")); }
         catch (IllegalArgumentException invalid) { throw new IOException(invalid.getMessage(), invalid); }
         if (tag.hasKey("LabelFormat") && (!tag.hasKey("LabelFormat", 3)
-            || tag.getInteger("LabelFormat") < 0 || tag.getInteger("LabelFormat") > 2)) {
+            || tag.getInteger("LabelFormat") < 0 || tag.getInteger("LabelFormat") > 3)) {
             throw new IOException("Unsupported LabelFormat");
+        }
+        if (tag.hasKey("Recipes") && !tag.hasKey("Recipes", 3)) throw new IOException("Malformed Recipes count");
+        if (tag.hasKey("RecipeNames")) {
+            if (!tag.hasKey("RecipeNames", 9)) throw new IOException("Malformed RecipeNames list");
+            NBTTagList names = (NBTTagList) tag.getTag("RecipeNames");
+            if (names.func_150303_d() != 0 && names.func_150303_d() != 8) throw new IOException("RecipeNames must contain strings");
+            if (names.tagCount() > LabelRules.MAX_RECIPES) throw new IOException("Too many recipe names");
+            for (int i = 0; i < names.tagCount(); i++) {
+                if (names.getStringTagAt(i).length() > LabelRules.MAX_RECIPE_NAME) throw new IOException("Recipe name too long");
+            }
         }
         if (!tag.hasKey("Icons")) return;
         if (!tag.hasKey("Icons", 9)) throw new IOException("Malformed Icons list");

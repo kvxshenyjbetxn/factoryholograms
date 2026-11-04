@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.7
+
+- A hologram can now hold up to 8 recipes. Switch between them with the arrows above the slots in the editor, add or remove recipes with the + and - buttons.
+- Each recipe can have its own name, shown above its row.
+- Recipes are shown as separate rows in the world, with their arrows lined up.
+- A hologram without a title no longer shows "Factory Holograms" on top; the panel is simply shorter.
+
 ## 0.7.6
 
 - Aim at an icon in a world hologram to highlight it and see its tooltip next to the crosshair. Hold Shift for the full tooltip.

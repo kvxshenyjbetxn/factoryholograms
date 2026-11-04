@@ -286,7 +286,7 @@ public class LocalLabelStoreTest {
                 NBTTagCompound future = root(); future.setInteger("Format", 2);
                 corrupt(file, world, LabelNbt.encode(future, LocalLabelStore.MAX_FILE_BYTES));
                 future.setString("Format", "1"); corrupt(file, world, LabelNbt.encode(future, LocalLabelStore.MAX_FILE_BYTES));
-                NBTTagCompound label = label(world, 0, 64, 0); label.setInteger("LabelFormat", 3);
+                NBTTagCompound label = label(world, 0, 64, 0); label.setInteger("LabelFormat", 4);
                 corrupt(file, world, LabelNbt.encode(root(label), LocalLabelStore.MAX_FILE_BYTES));
                 byte[] valid = LabelNbt.encode(root(), LocalLabelStore.MAX_FILE_BYTES);
                 byte[] trailing = new byte[valid.length + 1]; System.arraycopy(valid, 0, trailing, 0, valid.length);
@@ -430,7 +430,7 @@ public class LocalLabelStoreTest {
                 Path path = directory.path.resolve("DIM0.dat"); LabelTestSupport.TestWorld world = new LabelTestSupport.TestWorld();
                 LocalLabelStore store = new LocalLabelStore(path.toFile(), world);
                 HologramLabel label = store.draft(0, 64, 0); label.setLabel("all slots");
-                for (int i = 0; i < LabelRules.ICON_SLOTS; i++) label.setInventorySlotContents(i, icon());
+                for (int i = 0; i < LabelRules.SLOTS_PER_RECIPE; i++) label.setInventorySlotContents(i, icon());
                 store.put(label);
                 HologramLabel loaded = new LocalLabelStore(path.toFile(), world).draft(0, 64, 0);
                 assertEquals(16, loaded.occupiedSlots(false).length); assertEquals(16, loaded.occupiedSlots(true).length);
@@ -441,8 +441,8 @@ public class LocalLabelStoreTest {
                 NBTTagCompound tooLarge = oversized.toNBT();
                 corrupt(path, world, LabelNbt.encode(root(tooLarge), LocalLabelStore.MAX_FILE_BYTES));
                 HologramLabel aggregate = new HologramLabel(world, 0, 64, 0); aggregate.setLabel("aggregate");
-                for (int i = 0; i < 8; i++) aggregate.setInventorySlotContents(i, icon());
-                for (int i = 0; i < 8; i++) aggregate.getStackInSlot(i).getTagCompound().setByteArray("payload", new byte[800]);
+                for (int i = 0; i < 24; i++) aggregate.setInventorySlotContents(i, icon());
+                for (int i = 0; i < 24; i++) aggregate.getStackInSlot(i).getTagCompound().setByteArray("payload", new byte[800]);
                 Files.write(path, good);
                 assertThrows(IOException.class, () -> store.put(aggregate)); assertArrayEquals(good, Files.readAllBytes(path));
                 assertEquals("all slots", store.draft(0, 64, 0).getTitle());

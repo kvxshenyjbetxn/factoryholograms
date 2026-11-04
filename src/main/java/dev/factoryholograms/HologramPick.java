@@ -22,13 +22,10 @@ public final class HologramPick {
         return new double[] {t, px, py};
     }
 
-    /** Index in inputs-then-outputs order of the slot under the point, or -1. */
-    public static int slotAt(HologramLayout layout, int inputs, int outputs, double px, double py) {
-        for (int i = 0; i < inputs; i++) {
-            if (inside(HologramLayout.iconX(layout.inputX, i, inputs), HologramLayout.iconY(i), px, py)) return i;
-        }
-        for (int i = 0; i < outputs; i++) {
-            if (inside(HologramLayout.iconX(layout.outputX, i, outputs), HologramLayout.iconY(i), px, py)) return inputs + i;
+    /** GLOBAL slot index (recipe * 32 + local) of the icon under the point, or -1. */
+    public static int slotAt(HologramLayout layout, double px, double py) {
+        for (int slot : layout.allSlots()) {
+            if (inside(layout.slotX(slot), layout.slotY(slot), px, py)) return slot;
         }
         return -1;
     }

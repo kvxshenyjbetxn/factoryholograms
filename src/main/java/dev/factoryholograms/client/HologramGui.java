@@ -47,6 +47,11 @@ public final class HologramGui extends GuiContainer {
     private static final int POSITION_MODE = 18;
     private static final int ROTATION_MODE = 19;
     private static final int ACCENT = 0x65E5ED;
+    private static final int RECIPE_PREV = 20;
+    private static final int RECIPE_NEXT = 21;
+    private static final int RECIPE_ADD = 22;
+    private static final int RECIPE_REMOVE = 23;
+    private static final int SELECTOR_Y = 43;
     private static final int GHOST_Y = 56;
     private static final int INVENTORY_Y = 160;
     private static final int HOTBAR_Y = 218;
@@ -69,11 +74,13 @@ public final class HologramGui extends GuiContainer {
     private int touchPressCount;
     private GuiButton pressedButton;
     private GuiTextField titleField;
+    private GuiTextField recipeField;
     private GuiButton displayButton;
     private boolean repeatStateSaved;
     private boolean previousRepeatState;
     private boolean placementMode;
     private boolean rotationMode;
+    private int currentRecipe;
 
     public HologramGui(HologramLabel draft, ClientProxy owner) {
         super(new LocalDisplayContainer());
@@ -108,6 +115,13 @@ public final class HologramGui extends GuiContainer {
         titleField.setText(title == null ? "" : title);
         titleField.setTextColor(0xE4F8FA);
         titleField.setFocused(focused);
+        boolean recipeFocused = !placementMode && recipeField != null && recipeField.isFocused();
+        recipeField = new GuiTextField(fontRendererObj, guiLeft + 22, guiTop + SELECTOR_Y, 82, 12);
+        recipeField.setMaxStringLength(LabelRules.MAX_RECIPE_NAME);
+        recipeField.setTextColor(0xE4F8FA);
+        recipeField.setFocused(recipeFocused && !focused);
+        currentRecipe = Math.max(0, Math.min(currentRecipe, draft.getRecipeCount() - 1));
+        loadRecipeField();
 
         buttonList.clear();
         displayButton = null;
@@ -118,6 +132,10 @@ public final class HologramGui extends GuiContainer {
             buttonList.add(displayButton);
             buttonList.add(new GuiButton(APPLY, guiLeft + 8, guiTop + 130, 78, 18, text("apply", "Apply")));
             buttonList.add(new GuiButton(DELETE, guiLeft + 90, guiTop + 130, 78, 18, text("delete", "Delete")));
+            buttonList.add(new GuiButton(RECIPE_PREV, guiLeft + 8, guiTop + SELECTOR_Y, 12, 12, "<"));
+            buttonList.add(new GuiButton(RECIPE_NEXT, guiLeft + 106, guiTop + SELECTOR_Y, 12, 12, ">"));
+            buttonList.add(new GuiButton(RECIPE_ADD, guiLeft + 142, guiTop + SELECTOR_Y, 12, 12, "+"));
+            buttonList.add(new GuiButton(RECIPE_REMOVE, guiLeft + 156, guiTop + SELECTOR_Y, 12, 12, "-"));
         }
         for (int axis = 0; axis < (rotationMode ? 2 : 3); axis++) {
             int y = guiTop + 32 + axis * 26;
@@ -150,6 +168,7 @@ public final class HologramGui extends GuiContainer {
         super.updateScreen();
         if (!checkContext()) return;
         titleField.updateCursorCounter();
+        recipeField.updateCursorCounter();
         updateDisplayButton();
         updatePositionButtons();
     }
@@ -178,6 +197,20 @@ public final class HologramGui extends GuiContainer {
             rotationMode = !rotationMode;
             setWorldAndResolution(mc, width, height);
             return;
+        } else if (button.id == RECIPE_PREV) {
+            currentRecipe = Math.max(0, currentRecipe - 1);
+            loadRecipeField();
+        } else if (button.id == RECIPE_NEXT) {
+            currentRecipe = Math.min(draft.getRecipeCount() - 1, currentRecipe + 1);
+            loadRecipeField();
+        } else if (button.id == RECIPE_ADD) {
+            int added = draft.addRecipe();
+            if (added >= 0) currentRecipe = added;
+            loadRecipeField();
+        } else if (button.id == RECIPE_REMOVE) {
+            draft.removeRecipe(currentRecipe);
+            currentRecipe = Math.max(0, Math.min(currentRecipe, draft.getRecipeCount() - 1));
+            loadRecipeField();
         } else if (button.id == POSITION_RESET) {
             if (rotationMode) {
                 draft.setRotation(0, 0);
@@ -201,6 +234,11 @@ public final class HologramGui extends GuiContainer {
         updatePositionButtons();
     }
 
+    private void loadRecipeField() {
+        recipeField.setText(draft.getRecipeName(currentRecipe));
+        recipeField.setCursorPositionEnd();
+    }
+
     public HologramLabel getPreviewLabel() {
         draft.setLabel(titleField == null ? draft.getTitle() : titleField.getText(), offsets[0], offsets[1], offsets[2]);
         return draft;
@@ -221,6 +259,14 @@ public final class HologramGui extends GuiContainer {
                     && (index % 2 == 0 ? current > -limit : current < limit);
             } else if (button.id == POSITION_RESET) {
                 button.enabled = !rotationMode || !HologramConfig.autoRotate;
+            } else if (button.id == RECIPE_PREV) {
+                button.enabled = currentRecipe > 0;
+            } else if (button.id == RECIPE_NEXT) {
+                button.enabled = currentRecipe < draft.getRecipeCount() - 1;
+            } else if (button.id == RECIPE_ADD) {
+                button.enabled = draft.getRecipeCount() < LabelRules.MAX_RECIPES;
+            } else if (button.id == RECIPE_REMOVE) {
+                button.enabled = !(draft.getRecipeCount() == 1 && draft.isRecipeEmpty(0));
             }
         }
     }
@@ -244,12 +290,19 @@ public final class HologramGui extends GuiContainer {
             return;
         }
         if (keyCode == Keyboard.KEY_TAB) {
-            titleField.setFocused(!titleField.isFocused());
+            boolean toRecipe = titleField.isFocused();
+            titleField.setFocused(recipeField.isFocused() || !titleField.isFocused());
+            recipeField.setFocused(toRecipe);
             return;
         }
         if (titleField.isFocused()) {
             // Inventory and hotbar keys are ordinary text here, never inventory actions.
             titleField.textboxKeyTyped(character, keyCode);
+            return;
+        }
+        if (recipeField.isFocused()) {
+            recipeField.textboxKeyTyped(character, keyCode);
+            draft.setRecipeName(currentRecipe, recipeField.getText());
             return;
         }
         if (browser.keyTyped(this, character, keyCode)) return;
@@ -303,11 +356,13 @@ public final class HologramGui extends GuiContainer {
         // Even a panel click must reach the bridge so it can relinquish search focus.
         boolean consumed = browser.mouseDown(this, mouseX, mouseY, mouseButton);
         titleField.mouseClicked(mouseX, mouseY, mouseButton);
+        recipeField.mouseClicked(mouseX, mouseY, mouseButton);
         if (consumed) {
             titleField.setFocused(false);
+            recipeField.setFocused(false);
             return;
         }
-        if (mouseButton == 0 && drag.active() && inTitleField(mouseX, mouseY)) {
+        if (mouseButton == 0 && drag.active() && (inTitleField(mouseX, mouseY) || inRecipeField(mouseX, mouseY))) {
             acceptBrowserDrop(mouseX, mouseY, drag.stack());
             clearDrag();
             return;
@@ -406,7 +461,7 @@ public final class HologramGui extends GuiContainer {
     }
 
     public boolean isTitleFocused() {
-        return !placementMode && titleField != null && titleField.isFocused();
+        return !placementMode && ((titleField != null && titleField.isFocused()) || (recipeField != null && recipeField.isFocused()));
     }
 
     public boolean acceptBrowserDrop(int screenX, int screenY, ItemStack stack) {
@@ -424,12 +479,31 @@ public final class HologramGui extends GuiContainer {
             titleField.setFocused(true);
             return true;
         }
+        if (inRecipeField(screenX, screenY)) {
+            String name;
+            try {
+                name = stack.getDisplayName();
+            } catch (RuntimeException e) {
+                return false;
+            }
+            if (name == null) return false;
+            draft.setRecipeName(currentRecipe, name);
+            loadRecipeField();
+            titleField.setFocused(false);
+            recipeField.setFocused(true);
+            return true;
+        }
         updateGhostPositions();
         int ghost = ghostAt(screenX - guiLeft, screenY - guiTop);
         if (ghost < 0) return false;
         draft.setInventorySlotContents(ghost, iconCopy(stack));
         updateGhostPositions();
         return true;
+    }
+
+    private boolean inRecipeField(int screenX, int screenY) {
+        return recipeField != null && screenX >= recipeField.xPosition && screenX < recipeField.xPosition + recipeField.width
+            && screenY >= recipeField.yPosition && screenY < recipeField.yPosition + recipeField.height;
     }
 
     private boolean inTitleField(int screenX, int screenY) {
@@ -518,7 +592,14 @@ public final class HologramGui extends GuiContainer {
             if (!placementMode) drawDefaultBackground();
             drawPanel();
             drawLabels();
-            if (!placementMode) titleField.drawTextBox();
+            if (!placementMode) {
+                titleField.drawTextBox();
+                recipeField.drawTextBox();
+                if (recipeField.getText().isEmpty() && !recipeField.isFocused()) {
+                    fontRendererObj.drawString(text("recipe.placeholder", "Recipe %d", currentRecipe + 1),
+                        recipeField.xPosition + 4, recipeField.yPosition + 2, 0x707070);
+                }
+            }
             for (Object value : buttonList) ((GuiButton) value).drawButton(mc, mouseX, mouseY);
             if (!placementMode) browser.draw(this, mouseX, mouseY);
             if (!placementMode && drag.active()) {
@@ -542,10 +623,12 @@ public final class HologramGui extends GuiContainer {
     private void updateGhostPositions() {
         Arrays.fill(ghostX, -10000);
         Arrays.fill(ghostY, -10000);
+        currentRecipe = Math.max(0, Math.min(currentRecipe, draft.getRecipeCount() - 1));
         for (int side = 0; side < 2; side++) {
-            int[] occupied = draft.occupiedSlots(side == 1);
+            int[] occupied = draft.occupiedSlots(currentRecipe, side == 1);
             for (int ordinal = 0; ordinal < occupied.length; ordinal++) positionGhost(occupied[ordinal], ordinal);
-            for (int index = side * LabelRules.ICONS_PER_SIDE; index < (side + 1) * LabelRules.ICONS_PER_SIDE; index++) {
+            int start = LabelRules.slot(currentRecipe, side * LabelRules.ICONS_PER_SIDE);
+            for (int index = start; index < start + LabelRules.ICONS_PER_SIDE; index++) {
                 if (draft.getStackInSlot(index) == null) {
                     positionGhost(index, occupied.length);
                     break;
@@ -555,12 +638,13 @@ public final class HologramGui extends GuiContainer {
     }
 
     private void positionGhost(int index, int ordinal) {
-        ghostX[index] = (index < LabelRules.ICONS_PER_SIDE ? 8 : 96) + ordinal % LabelRules.ICONS_PER_ROW * 18;
+        ghostX[index] = (LabelRules.isInputSlot(index) ? 8 : 96) + ordinal % LabelRules.ICONS_PER_ROW * 18;
         ghostY[index] = GHOST_Y + ordinal / LabelRules.ICONS_PER_ROW * 18;
     }
 
     private int ghostAt(int x, int y) {
-        for (int index = 0; index < LabelRules.ICON_SLOTS; index++) {
+        int start = LabelRules.slot(currentRecipe, 0);
+        for (int index = start; index < start + LabelRules.SLOTS_PER_RECIPE; index++) {
             if (draft.isSlotVisible(index) && insideSlot(x, y, ghostX[index], ghostY[index])) return index;
         }
         return -1;
@@ -609,8 +693,9 @@ public final class HologramGui extends GuiContainer {
         drawRect(x + 1, y + 1, x + xSize - 1, y + ySize - 1, 0xFF192F38);
         drawRect(x + 1, y + 1, x + xSize - 1, y + 3, 0xFF65E5ED);
         drawRect(x + 176, y + 8, x + 177, y + ySize - 8, 0xFF387681);
-        drawRect(x + 7, y + 45, x + 169, y + 128, 0xFF102129);
-        for (int index = 0; index < LabelRules.ICON_SLOTS; index++) {
+        drawRect(x + 7, y + 55, x + 169, y + 128, 0xFF102129);
+        int firstGhost = LabelRules.slot(currentRecipe, 0);
+        for (int index = firstGhost; index < firstGhost + LabelRules.SLOTS_PER_RECIPE; index++) {
             if (!draft.isSlotVisible(index) || ghostX[index] < 0) continue;
             drawSlot(x + ghostX[index], y + ghostY[index], true);
             drawItem(draft.getStackInSlot(index), x + ghostX[index], y + ghostY[index]);
@@ -654,8 +739,7 @@ public final class HologramGui extends GuiContainer {
     private void drawLabels() {
         if (!placementMode) {
             drawLabel(text("title", "Factory Holograms"), 10, 9, ACCENT);
-            drawLabel(text("input", "Input"), 8, 46, ACCENT);
-            drawLabel(text("output", "Output"), 96, 46, ACCENT);
+            drawLabel((currentRecipe + 1) + "/" + draft.getRecipeCount(), 121, SELECTOR_Y + 2, 0xE4F8FA);
             drawLabel("->", 81, 84, ACCENT);
         }
         drawLabel(fontRendererObj.trimStringToWidth(rotationMode ? text("rotation.title", "Rotation / tilt")
@@ -697,12 +781,14 @@ public final class HologramGui extends GuiContainer {
             lines.add(sourceHint());
             lines.add(text("ghost.drag.place", "Left-click with a copied item, or drag it here."));
             lines.add(text("ghost.clear", "Right-click: clear icon"));
-            lines.add(text("ghost.limit", "16 per side, 4 per row; filling a slot reveals the next."));
+            lines.add(text("ghost.limit", "16 per side, up to 8 recipes; filling a slot reveals the next."));
             lines.add(text("ghost.immediate", "All changes saved by Apply"));
             lines.add(text("ghost.drag.cancel", "Escape cancels a copy first; otherwise discards edits."));
         } else if (inventory >= 0) {
             addItemTooltip(lines, playerStack(inventory));
             lines.add(sourceHint());
+        } else if (!placementMode && recipeButtonKey(x, y) != null) {
+            lines.add(text(recipeButtonKey(x, y), "Recipe"));
         } else if (x >= 184 && x < 296) {
             if (y >= modeY && y < modeY + 18) {
                 lines.add(placementMode
@@ -731,6 +817,16 @@ public final class HologramGui extends GuiContainer {
             }
             drawHoveringText(wrapped, mouseX, mouseY, fontRendererObj);
         }
+    }
+
+    private String recipeButtonKey(int x, int y) {
+        if (y < SELECTOR_Y || y >= SELECTOR_Y + 12) return null;
+        if (x >= 8 && x < 20) return "recipe.prev";
+        if (x >= 22 && x < 104) return "recipe.name";
+        if (x >= 106 && x < 118) return "recipe.next";
+        if (x >= 142 && x < 154) return "recipe.add";
+        if (x >= 156 && x < 168) return "recipe.remove";
+        return null;
     }
 
     private void addItemTooltip(List<String> lines, ItemStack stack) {
