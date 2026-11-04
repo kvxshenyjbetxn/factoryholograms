@@ -6,6 +6,10 @@ Holographic names and input/output item icons above machines and other blocks in
 
 Labels are visible only to you, no server install needed. You pick the names and icons yourself. Tested on **GTNH 2.9.0 RC-2**; works without GregTech and NEI.
 
+[![Demo video](docs/demo-preview.jpg)](docs/demo.mp4)
+
+▶ [Demo video](docs/demo.mp4)
+
 ## Install
 
 1. Download **`factoryholograms-0.7.8.jar`** from the [latest release](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).

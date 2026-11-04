@@ -6,6 +6,10 @@
 
 Мітки бачите тільки ви, на сервер нічого ставити не треба. Назви й іконки ви обираєте самі. Перевірено на **GTNH 2.9.0 RC-2**; працює без GregTech і NEI.
 
+[![Демо-відео](docs/demo-preview.jpg)](docs/demo.mp4)
+
+▶ [Демо-відео](docs/demo.mp4)
+
 ## Встановлення
 
 1. Завантажте **`factoryholograms-0.7.8.jar`** з [останнього релізу](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
