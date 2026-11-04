@@ -6,9 +6,7 @@
 
 Мітки бачите тільки ви, на сервер нічого ставити не треба. Назви й іконки ви обираєте самі. Перевірено на **GTNH 2.9.0 RC-2**; працює без GregTech і NEI.
 
-[![Демо-відео](docs/demo-preview.jpg)](docs/demo.mp4)
-
-▶ [Демо-відео](docs/demo.mp4)
+https://github.com/user-attachments/assets/96eca09f-0427-4458-8abf-a039270e8394
 
 ## Встановлення
 

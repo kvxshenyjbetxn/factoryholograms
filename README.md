@@ -6,9 +6,7 @@ Holographic names and input/output item icons above machines and other blocks in
 
 Labels are visible only to you, no server install needed. You pick the names and icons yourself. Tested on **GTNH 2.9.0 RC-2**; works without GregTech and NEI.
 
-[![Demo video](docs/demo-preview.jpg)](docs/demo.mp4)
-
-▶ [Demo video](docs/demo.mp4)
+https://github.com/user-attachments/assets/96eca09f-0427-4458-8abf-a039270e8394
 
 ## Install
 
