@@ -307,6 +307,11 @@ public final class HologramGui extends GuiContainer {
             titleField.setFocused(false);
             return;
         }
+        if (mouseButton == 0 && drag.active() && inTitleField(mouseX, mouseY)) {
+            acceptBrowserDrop(mouseX, mouseY, drag.stack());
+            clearDrag();
+            return;
+        }
         int x = mouseX - guiLeft;
         int y = mouseY - guiTop;
         updateGhostPositions();
@@ -406,12 +411,30 @@ public final class HologramGui extends GuiContainer {
 
     public boolean acceptBrowserDrop(int screenX, int screenY, ItemStack stack) {
         if (!checkContext() || placementMode || stack == null || stack.getItem() == null) return false;
+        if (inTitleField(screenX, screenY)) {
+            String name;
+            try {
+                name = stack.getDisplayName();
+            } catch (RuntimeException e) {
+                return false;
+            }
+            if (name == null) return false;
+            titleField.setText(name); // draft label is read from titleField on save, so no extra sync is needed
+            titleField.setCursorPositionEnd();
+            titleField.setFocused(true);
+            return true;
+        }
         updateGhostPositions();
         int ghost = ghostAt(screenX - guiLeft, screenY - guiTop);
         if (ghost < 0) return false;
         draft.setInventorySlotContents(ghost, iconCopy(stack));
         updateGhostPositions();
         return true;
+    }
+
+    private boolean inTitleField(int screenX, int screenY) {
+        return titleField != null && screenX >= titleField.xPosition && screenX < titleField.xPosition + titleField.width
+            && screenY >= titleField.yPosition && screenY < titleField.yPosition + titleField.height;
     }
 
     private boolean checkContext() {

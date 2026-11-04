@@ -3,6 +3,8 @@ package dev.factoryholograms;
 /** Stable world-space anchor math and automatic front placement for new labels. */
 public final class HologramPlacement {
     public static final double BASE_Y = 1.85D;
+    /** Default drop for new labels; shown to the player as 0. */
+    public static final float DEFAULT_Y = -0.5F;
 
     private HologramPlacement() {}
 
@@ -30,6 +32,6 @@ public final class HologramPlacement {
             case 5: x = 1; z = 0; break;
             default: break;
         }
-        return new float[] {x, 0, z - LabelRules.BASE_Z};
+        return new float[] {x, DEFAULT_Y, z - LabelRules.BASE_Z};
     }
 }

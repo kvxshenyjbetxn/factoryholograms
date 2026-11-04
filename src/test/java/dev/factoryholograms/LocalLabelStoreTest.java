@@ -64,7 +64,7 @@ public class LocalLabelStoreTest {
                     HologramLabel draft = store.draftForEditing(0, 64, 0, face);
                     assertEquals(expected[face - 2][0], HologramPlacement.centerX(draft), 0.000001);
                     assertEquals(expected[face - 2][1], HologramPlacement.centerZ(draft), 0.000001);
-                    assertEquals(65.85, HologramPlacement.centerY(draft), 0.000001);
+                    assertEquals(65.35, HologramPlacement.centerY(draft), 0.000001);
                     assertTrue(draft.isEmpty()); assertTrue(store.labels().isEmpty()); assertFalse(file.exists());
                 }
             }

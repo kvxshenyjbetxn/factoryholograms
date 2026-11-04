@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.5
+
+- Icons can now be dragged or clicked from NEI's recently viewed (history) and craftables panels.
+- Dropping any icon on the name field fills in that item's name.
+- New labels are placed 0.50 lower by default; this height is shown as Y 0. Existing labels do not move.
+
 ## 0.7.4
 
 - Added the MIT license to the repository and regular mod JAR.

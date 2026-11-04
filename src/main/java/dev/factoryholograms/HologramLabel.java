@@ -135,10 +135,10 @@ public class HologramLabel implements IInventory {
         if (tag.hasKey("PlacementFace", 3)) {
             label.setPlacementFace(tag.getInteger("PlacementFace"));
         } else if (!legacy) {
-            // Recover untouched old front presets without moving any existing label.
+            // Recover untouched old front presets (saved with Y 0) without moving any existing label.
             for (int face = 2; face <= 5; face++) {
                 float[] base = HologramPlacement.frontOffsets(face);
-                if (label.offsetX == base[0] && label.offsetY == base[1] && label.offsetZ == base[2]) {
+                if (label.offsetX == base[0] && label.offsetY == 0 && label.offsetZ == base[2]) {
                     label.setPlacementFace(face);
                     break;
                 }

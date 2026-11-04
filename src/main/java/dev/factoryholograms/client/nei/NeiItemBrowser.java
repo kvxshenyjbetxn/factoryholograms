@@ -10,6 +10,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import codechicken.lib.gui.GuiDraw;
+import codechicken.nei.AbstractSubpanel;
 import codechicken.nei.ItemPanels;
 import codechicken.nei.KeyManager;
 import codechicken.nei.LayoutManager;
@@ -74,13 +75,17 @@ public final class NeiItemBrowser implements ItemBrowser {
     @Override
     public void drawTooltips(HologramGui gui, int mouseX, int mouseY) {
         Widget widget = widgetAt(gui, mouseX, mouseY);
-        if (widget == null || (pagePanel(widget) == null && widget != LayoutManager.searchField)) return;
+        if ((widget == null || (pagePanel(widget) == null && widget != LayoutManager.searchField))
+            && subpanelAt(gui, mouseX, mouseY) == null) return;
         GuiContainerManager manager = manager(gui);
         if (manager != null) manager.renderToolTips(mouseX, mouseY);
     }
 
     @Override
     public ItemStack stackAt(HologramGui gui, int x, int y) {
+        // Subpanels first: getWidgetUnderMouse may report another widget over the history area.
+        Widget sub = subpanelAt(gui, x, y);
+        if (sub != null) return iconCopy(sub.getStackMouseOver(x, y));
         Widget widget = widgetAt(gui, x, y);
         if (widget == null || (widget != ItemPanels.itemPanel && widget != ItemPanels.bookmarkPanel)) return null;
         return iconCopy(widget.getStackMouseOver(x, y));
@@ -92,6 +97,8 @@ public final class NeiItemBrowser implements ItemBrowser {
         Widget widget = widgetAt(gui, x, y);
         SearchField search = LayoutManager.searchField;
         if (widget != search) search.setFocus(false);
+        // History/craftables: the editor starts its own ghost drag; never call the subpanel's handleClick.
+        if (subpanelAt(gui, x, y) != null) return false;
 
         if (widget != null && widget == search && search.isVisible()) {
             if (button == 0 || button == 1) search.handleClick(x, y, button);
@@ -103,6 +110,7 @@ public final class NeiItemBrowser implements ItemBrowser {
             return true;
         }
         // In particular, never call a panel's handleClick/handleClickExt, even with an empty cursor.
+        // History/craftables subpanels fall through here too, so the editor starts its own ghost drag.
         return false;
     }
 
@@ -170,6 +178,19 @@ public final class NeiItemBrowser implements ItemBrowser {
         if (manager(gui) == null || !NEIClientConfig.isEnabled() || NEIClientConfig.isHidden()
             || overlaps(gui, x, y, 1, 1)) return null;
         return LayoutManager.instance().getWidgetUnderMouse(x, y);
+    }
+
+    /** History/craftables subpanels are not reported by getWidgetUnderMouse. */
+    private static Widget subpanelAt(HologramGui gui, int x, int y) {
+        if (manager(gui) == null || !NEIClientConfig.isEnabled() || NEIClientConfig.isHidden()
+            || overlaps(gui, x, y, 1, 1) || ItemPanels.itemPanel == null) return null;
+        AbstractSubpanel history = ItemPanels.itemPanel.historyPanel;
+        if (NEIClientConfig.showHistoryPanelWidget() && history != null && history.contains(x, y)) return history;
+        AbstractSubpanel craftables = ItemPanels.itemPanel.craftablesPanel;
+        if (NEIClientConfig.showCraftablesPanelWidget() && craftables != null && craftables.contains(x, y)) {
+            return craftables;
+        }
+        return null;
     }
 
     private static PanelWidget<?> pagePanel(Widget widget) {

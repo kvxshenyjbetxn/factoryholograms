@@ -33,7 +33,7 @@ public class HologramPlacementTest {
             label.setLabel("EBF", offsets[0], offsets[1], offsets[2]);
             assertEquals(expected[i][0], HologramPlacement.centerX(label), 0.000001);
             assertEquals(expected[i][1], HologramPlacement.centerZ(label), 0.000001);
-            assertEquals(65.85, HologramPlacement.centerY(label), 0.000001);
+            assertEquals(65.35, HologramPlacement.centerY(label), 0.000001);
         }
     }
 
@@ -64,7 +64,7 @@ public class HologramPlacementTest {
             assertArrayEquals(new float[] {0, 0, 0}, label.getPositionOffsets(), 0);
             double x = HologramPlacement.centerX(label);
             double z = HologramPlacement.centerZ(label);
-            label.setLabel("EBF", base[0] + 0.25F, 0.5F, base[2] - 0.75F);
+            label.setLabel("EBF", base[0] + 0.25F, base[1] + 0.5F, base[2] - 0.75F);
             label = HologramLabel.fromNBT(null, label.toNBT());
             assertEquals(face, label.getPlacementFace());
             assertArrayEquals(new float[] {0.25F, 0.5F, -0.75F}, label.getPositionOffsets(), 0);
@@ -82,11 +82,13 @@ public class HologramPlacementTest {
         for (int face = 2; face <= 5; face++) {
             HologramLabel old = new HologramLabel(null, 10, 64, 20);
             float[] base = HologramPlacement.frontOffsets(face);
-            old.setLabel("old", base[0], base[1], base[2]);
+            old.setLabel("old", base[0], 0, base[2]);
             net.minecraft.nbt.NBTTagCompound tag = old.toNBT();
             tag.removeTag("PlacementFace");
             HologramLabel migrated = HologramLabel.fromNBT(null, tag);
-            assertArrayEquals(new float[] {0, 0, 0}, migrated.getPositionOffsets(), 0);
+            assertEquals(face, migrated.getPlacementFace());
+            assertArrayEquals(new float[] {0, -HologramPlacement.DEFAULT_Y, 0}, migrated.getPositionOffsets(), 0);
+            assertEquals(HologramPlacement.centerY(old), HologramPlacement.centerY(migrated), 0);
             assertEquals(HologramPlacement.centerX(old), HologramPlacement.centerX(migrated), 0);
             assertEquals(HologramPlacement.centerZ(old), HologramPlacement.centerZ(migrated), 0);
         }
