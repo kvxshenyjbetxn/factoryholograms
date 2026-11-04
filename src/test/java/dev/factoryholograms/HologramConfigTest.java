@@ -44,7 +44,7 @@ public class HologramConfigTest {
         assertEquals(0.85F, HologramConfig.opacity, 0.00001F);
         assertEquals(0x55DDFF, HologramConfig.color);
         assertEquals(0xFFFFFF, HologramConfig.textColor);
-        assertEquals(7, HologramConfig.getConfiguration().getCategory("display").size());
+        assertEquals(10, HologramConfig.getConfiguration().getCategory("display").size());
                 assertEquals("cyan", HologramConfig.getConfiguration().getCategory("display").get("color").getString());
                 assertEquals("cyan", HologramConfig.getConfiguration().getCategory("display").get("color").getDefault());
                 HologramConfig.load(file);
@@ -150,7 +150,7 @@ public class HologramConfigTest {
                 HologramConfig.load(file);
                 assertEquals(entry.rgb, HologramConfig.color);
                 assertEquals(entry.id, HologramConfig.getConfiguration().getCategory("display").get("color").getString());
-                assertEquals(7, HologramConfig.getConfiguration().getCategory("display").size());
+                assertEquals(10, HologramConfig.getConfiguration().getCategory("display").size());
             }
         }
 
@@ -167,7 +167,7 @@ public class HologramConfigTest {
                 HologramConfig.load(file);
                 assertEquals(entry.rgb, HologramConfig.color);
                 assertEquals(entry.id, HologramConfig.getConfiguration().getCategory("display").get("color").getString());
-                assertEquals(7, HologramConfig.getConfiguration().getCategory("display").size());
+                assertEquals(10, HologramConfig.getConfiguration().getCategory("display").size());
             }
         }
 
@@ -188,7 +188,7 @@ public class HologramConfigTest {
                     assertFalse(HologramConfig.enabled);
                     assertEquals(24, HologramConfig.renderDistance);
                     assertEquals(0.5F, HologramConfig.opacity, 0);
-                    assertEquals(7, HologramConfig.getConfiguration().getCategory("display").size());
+                    assertEquals(10, HologramConfig.getConfiguration().getCategory("display").size());
                 }
             }
         }

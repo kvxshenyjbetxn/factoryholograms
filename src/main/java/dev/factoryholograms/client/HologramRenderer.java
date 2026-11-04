@@ -115,6 +115,43 @@ public final class HologramRenderer {
         return new HologramHover(label, slot, stack, hit[0]);
     }
 
+    /**
+     * Distance along the ray to this label's panel (not just an icon), or -1. When recipeOut is non-null,
+     * recipeOut[0] receives the real recipe index of the band that was hit, or -1 (title area / between bands).
+     */
+    public double pickPanel(HologramLabel label, double ox, double oy, double oz, double dx, double dy, double dz,
+        int[] recipeOut) {
+        if (recipeOut != null) recipeOut[0] = -1;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (!HologramConfig.enabled || mc.gameSettings.hideGUI || mc.theWorld == null
+            || label.getWorld() != mc.theWorld || label.isEmpty()) return -1;
+        double cx = HologramPlacement.centerX(label), cy = HologramPlacement.centerY(label), cz = HologramPlacement.centerZ(label);
+        double ex = cx - ox, ey = cy - oy, ez = cz - oz;
+        if (visibleFade(ex * ex + ey * ey + ez * ez, false) <= 0.0F) return -1;
+        HologramLayout layout = layoutFor(label, mc.fontRenderer);
+        float[] rotation = rotationFor(mc, label);
+        double[] hit = HologramPick.panelHit(ox, oy, oz, dx, dy, dz, cx, cy, cz, rotation[0], rotation[1],
+            PIXEL_SCALE, layout.width, layout.height);
+        if (hit == null) return -1;
+        if (recipeOut != null) {
+            int band = layout.bandAt(hit[2]);
+            int[] recipes = label.visibleRecipes();
+            if (band >= 0 && band < recipes.length) recipeOut[0] = recipes[band];
+        }
+        return hit[0];
+    }
+
+    /** World coordinates of the center of an icon on the label's panel, or null if the slot is not shown. */
+    public double[] slotWorldPosition(HologramLabel label, int slot) {
+        Minecraft mc = Minecraft.getMinecraft();
+        HologramLayout layout = layoutFor(label, mc.fontRenderer);
+        if (!layout.hasSlot(slot)) return null;
+        float[] rotation = rotationFor(mc, label);
+        return HologramPick.pixelToWorld(layout.slotX(slot) + 8, layout.slotY(slot) + 8,
+            HologramPlacement.centerX(label), HologramPlacement.centerY(label), HologramPlacement.centerZ(label),
+            rotation[0], rotation[1], PIXEL_SCALE, layout.width, layout.height);
+    }
+
     public void render(HologramLabel label, double cameraX, double cameraY, double cameraZ, float eyeHeight,
         boolean preview, int hoveredSlot) {
         Minecraft mc = Minecraft.getMinecraft();

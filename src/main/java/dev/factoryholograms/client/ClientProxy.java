@@ -47,6 +47,7 @@ import dev.factoryholograms.CommonProxy;
 import dev.factoryholograms.FactoryHolograms;
 import dev.factoryholograms.HologramConfig;
 import dev.factoryholograms.HologramLabel;
+import dev.factoryholograms.HologramLinks;
 import dev.factoryholograms.HologramPlacement;
 import dev.factoryholograms.LabelRules;
 import dev.factoryholograms.LocalLabelStore;
@@ -62,12 +63,35 @@ public final class ClientProxy extends CommonProxy {
     private boolean loadFailed;
     private List<HologramLabel> renderLabels = Collections.emptyList();
     private final RenderItem tooltipItemRenderer = new RenderItem();
+    private final HologramLinkRenderer linkRenderer = new HologramLinkRenderer(renderer);
+    private List<HologramLinks.Link> links = Collections.emptyList();
     private HologramHover hover;
+    private HologramLabel focusLabel;
+    private int focusSlot = -1;
+    private int focusRecipe = -1;
+    private float focusSeenAt;
+    private final int[] panelRecipe = new int[1];
+    /** Ticks the links stay after looking away (10 s), the last FOCUS_FADE_TICKS of which fade out. */
+    private static final float FOCUS_STICKY_TICKS = 200.0F;
+    private static final float FOCUS_FADE_TICKS = 20.0F;
     private WorldRecipeHooks recipeHooks;
     private boolean recipeHooksLoaded;
 
+    private final KeyBinding toggleLinks = new KeyBinding(
+        "key.factoryholograms.links", Keyboard.KEY_L, "key.categories.factoryholograms");
+    private String lastLinkMode;
+
+    private void applyLinkMode(Minecraft mc, String mode) {
+        if (HologramConfig.LINK_OFF.equals(mode) && !HologramConfig.LINK_OFF.equals(HologramConfig.linkMode)) {
+            lastLinkMode = HologramConfig.linkMode;
+        }
+        HologramConfig.setLinkMode(mode);
+        mc.ingameGUI.func_110326_a(StatCollector.translateToLocal("gui.factoryholograms.links." + mode), false);
+    }
+
     @Override public void init() {
         ClientRegistry.registerKeyBinding(toggleHolograms);
+        ClientRegistry.registerKeyBinding(toggleLinks);
         FMLCommonHandler.instance().bus().register(this);
         MinecraftForge.EVENT_BUS.register(this);
         ClientCommandHandler.instance.registerCommand(new PathCommand());
@@ -78,6 +102,8 @@ public final class ClientProxy extends CommonProxy {
         store = null;
         loadFailed = false;
         renderLabels = Collections.emptyList();
+        links = Collections.emptyList();
+        focusLabel = null;
         hover = null;
     }
 
@@ -137,6 +163,8 @@ public final class ClientProxy extends CommonProxy {
     private void refreshRenderLabels() {
         // Snapshot once after loading/committing, not NBT-copying every icon on every frame.
         renderLabels = store == null ? Collections.<HologramLabel>emptyList() : new ArrayList<HologramLabel>(store.labels());
+        links = HologramLinks.compute(renderLabels);
+        focusLabel = null;
     }
 
     public boolean saveDraft(HologramLabel draft) {
@@ -189,7 +217,7 @@ public final class ClientProxy extends CommonProxy {
         if (mc.thePlayer != null) mc.thePlayer.addChatMessage(new ChatComponentText("[Factory Holograms] " + message));
     }
 
-    private static boolean isChunkLoaded(World world, int x, int z) {
+    static boolean isChunkLoaded(World world, int x, int z) {
         // ChunkProviderClient.chunkExists always returns true in vanilla 1.7.10.
         return world.getChunkProvider().chunkExists(x, z) && world.getChunkFromChunkCoords(x, z).isChunkLoaded;
     }
@@ -216,6 +244,11 @@ public final class ClientProxy extends CommonProxy {
         double z = camera.lastTickPosZ + (camera.posZ - camera.lastTickPosZ) * event.partialTicks;
         double margin = HologramConfig.renderDistance + LabelRules.MAX_OFFSET * 2 + 3;
         hover = findHover(mc, event.partialTicks, x, y, z, margin);
+        if (HologramConfig.enabled && !links.isEmpty()) {
+            float alpha = 1.0F;
+            if (HologramConfig.LINK_FOCUS.equals(HologramConfig.linkMode)) alpha = updateFocus(mc, event.partialTicks, x, y, z, margin);
+            linkRenderer.render(links, x, y, z, event.partialTicks, focusLabel, focusSlot, focusRecipe, alpha);
+        }
         for (HologramLabel label : renderLabels) {
             if (!HologramConfig.enabled) break;
             if (HologramPlacement.sameAnchor(label, preview)) continue;
@@ -230,6 +263,79 @@ public final class ClientProxy extends CommonProxy {
             && isChunkLoaded(sessionWorld, preview.x >> 4, preview.z >> 4) && preview.matchesBlock()) {
             renderer.render(preview, x, y, z, camera.getEyeHeight(), true);
         }
+    }
+
+    /** Tracks the looked-at hologram and recipe with a sticky fade; returns the focus alpha. */
+    private float updateFocus(Minecraft mc, float partialTicks, double x, double y, double z, double margin) {
+        float now = sessionWorld.getTotalWorldTime() + partialTicks;
+        HologramLabel looked = null;
+        int slot = -1;
+        int recipe = -1;
+        if (hover != null) {
+            looked = hover.label;
+            slot = hover.slot;
+            recipe = LabelRules.recipeOf(hover.slot);
+        } else if (canAim(mc)) {
+            HologramHover panel = findPanelFocus(mc, partialTicks, x, y, z, margin);
+            if (panel != null) {
+                looked = panel.label;
+                recipe = panel.slot;
+            }
+            MovingObjectPosition hit = mc.objectMouseOver;
+            if (looked == null && hit != null && hit.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+                for (HologramLabel label : renderLabels) {
+                    if (label.x == hit.blockX && label.y == hit.blockY && label.z == hit.blockZ) { looked = label; break; }
+                }
+            }
+        }
+        if (looked != null) {
+            focusLabel = looked;
+            focusSlot = slot;
+            focusRecipe = recipe;
+            focusSeenAt = now;
+            return 1.0F;
+        }
+        float elapsed = now - focusSeenAt;
+        if (focusLabel == null || elapsed < 0.0F || elapsed >= FOCUS_STICKY_TICKS) {
+            focusLabel = null;
+            return 0.0F;
+        }
+        focusSlot = -1;
+        float fadeStart = FOCUS_STICKY_TICKS - FOCUS_FADE_TICKS;
+        return elapsed <= fadeStart ? 1.0F : (FOCUS_STICKY_TICKS - elapsed) / FOCUS_FADE_TICKS;
+    }
+
+    private boolean canAim(Minecraft mc) {
+        EntityLivingBase view = mc.renderViewEntity != null ? mc.renderViewEntity : mc.thePlayer;
+        return mc.currentScreen == null && mc.gameSettings.thirdPersonView == 0 && mc.thePlayer != null
+            && !mc.thePlayer.isDead && view != null && view.worldObj == sessionWorld;
+    }
+
+    /** Nearest non-occluded hologram panel under the crosshair, regardless of the hover tooltip setting. */
+    private HologramHover findPanelFocus(Minecraft mc, float partialTicks, double x, double y, double z, double margin) {
+        EntityLivingBase view = mc.renderViewEntity != null ? mc.renderViewEntity : mc.thePlayer;
+        Vec3 origin = view.getPosition(partialTicks);
+        Vec3 look = view.getLook(partialTicks);
+        List<HologramHover> candidates = null;
+        for (HologramLabel label : renderLabels) {
+            double dx = label.x - x, dy = label.y - y, dz = label.z - z;
+            if (dx * dx + dy * dy + dz * dz > margin * margin) continue;
+            if (!isChunkLoaded(sessionWorld, label.x >> 4, label.z >> 4) || !label.matchesBlock()) continue;
+            double distance = renderer.pickPanel(label, origin.xCoord, origin.yCoord, origin.zCoord,
+                look.xCoord, look.yCoord, look.zCoord, panelRecipe);
+            if (distance < 0.0D) continue;
+            if (candidates == null) candidates = new ArrayList<HologramHover>();
+            // The slot field carries the hit recipe index (or -1) for panel candidates.
+            candidates.add(new HologramHover(label, panelRecipe[0], null, distance));
+        }
+        if (candidates == null) return null;
+        Collections.sort(candidates, new Comparator<HologramHover>() {
+            @Override public int compare(HologramHover a, HologramHover b) { return Double.compare(a.distance, b.distance); }
+        });
+        for (HologramHover candidate : candidates) {
+            if (!occluded(origin, look, candidate)) return candidate;
+        }
+        return null;
     }
 
     private HologramHover findHover(Minecraft mc, float partialTicks, double x, double y, double z, double margin) {
@@ -405,8 +511,23 @@ public final class ClientProxy extends CommonProxy {
                 if (FactoryHolograms.log != null) FactoryHolograms.log.warn("NEI recipe lookup failed", failure);
             }
         }
+        while (toggleLinks.isPressed()) {
+            if (mc.currentScreen != null || mc.theWorld == null || mc.thePlayer == null || mc.thePlayer.isDead) continue;
+            if (!HologramConfig.LINK_OFF.equals(HologramConfig.linkMode)) {
+                applyLinkMode(mc, HologramConfig.LINK_OFF);
+            } else {
+                applyLinkMode(mc, lastLinkMode == null || HologramConfig.LINK_OFF.equals(lastLinkMode)
+                    ? HologramConfig.LINK_FOCUS : lastLinkMode);
+            }
+        }
         while (toggleHolograms.isPressed()) {
             if (mc.currentScreen != null || mc.theWorld == null || mc.thePlayer == null || mc.thePlayer.isDead) continue;
+            if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
+                String mode = HologramConfig.LINK_FOCUS.equals(HologramConfig.linkMode) ? HologramConfig.LINK_ALL
+                    : HologramConfig.LINK_ALL.equals(HologramConfig.linkMode) ? HologramConfig.LINK_OFF : HologramConfig.LINK_FOCUS;
+                applyLinkMode(mc, mode);
+                continue;
+            }
             if (!Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) && !Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
                 HologramConfig.setEnabled(!HologramConfig.enabled);
                 continue;

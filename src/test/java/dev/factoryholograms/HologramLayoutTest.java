@@ -85,6 +85,19 @@ public class HologramLayoutTest {
         assertTrue(two.slotX(48) >= two.outputX);
     }
 
+    @Test public void bandAtMapsRowsToBands() {
+        HologramLayout two = new HologramLayout(new int[][] {{0}, {32}}, new int[][] {{16}, {48}}, 20);
+        assertEquals(-1, two.bandAt(two.bandTop(0) - 1));
+        assertEquals(-1, two.bandAt(0));
+        assertEquals(0, two.bandAt(two.bandTop(0)));
+        assertEquals(0, two.bandAt(two.separatorY(0) - 1));
+        assertEquals(0, two.bandAt(two.separatorY(0)));
+        assertEquals(0, two.bandAt(two.bandTop(1) - 1));
+        assertEquals(1, two.bandAt(two.bandTop(1)));
+        assertEquals(1, two.bandAt(two.height - 1));
+        assertEquals(-1, two.bandAt(two.height));
+    }
+
     @Test public void namedBandAddsHeaderAndWidensPanel() {
         HologramLayout plain = new HologramLayout(new int[][] {{0}}, new int[][] {{16}}, 20);
         HologramLayout named = new HologramLayout(new int[][] {{0}}, new int[][] {{16}}, new int[] {40}, 20);

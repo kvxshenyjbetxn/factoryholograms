@@ -52,4 +52,25 @@ public class HologramPickTest {
         assertEquals(48, HologramPick.slotAt(layout, layout.slotX(48) + 8, y + 8));
         assertEquals(32, HologramPick.slotAt(layout, layout.slotX(32) + 8, y + 8));
     }
+
+    @Test public void pixelToWorldInvertsPanelHit() {
+        float[][] angles = {{0F, 0F}, {35F, 20F}, {-120F, -40F}};
+        for (float[] a : angles) {
+            double[] o = HologramPick.pixelToWorld(0, 0, 3, 70, -4, a[0], a[1], S, 70, 40);
+            double[] u = HologramPick.pixelToWorld(1, 0, 3, 70, -4, a[0], a[1], S, 70, 40);
+            double[] v = HologramPick.pixelToWorld(0, 1, 3, 70, -4, a[0], a[1], S, 70, 40);
+            double[] du = {u[0] - o[0], u[1] - o[1], u[2] - o[2]}, dv = {v[0] - o[0], v[1] - o[1], v[2] - o[2]};
+            double nx = du[1] * dv[2] - du[2] * dv[1], ny = du[2] * dv[0] - du[0] * dv[2], nz = du[0] * dv[1] - du[1] * dv[0];
+            double len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+            nx /= len; ny /= len; nz /= len;
+            double[] w = HologramPick.pixelToWorld(20, 12, 3, 70, -4, a[0], a[1], S, 70, 40);
+            double[] hit = HologramPick.panelHit(w[0] - nx * 3, w[1] - ny * 3, w[2] - nz * 3, nx, ny, nz,
+                3, 70, -4, a[0], a[1], S, 70, 40);
+            if (hit == null) hit = HologramPick.panelHit(w[0] + nx * 3, w[1] + ny * 3, w[2] + nz * 3, -nx, -ny, -nz,
+                3, 70, -4, a[0], a[1], S, 70, 40);
+            assertNotNull(hit);
+            assertEquals(20, hit[1], 1e-6);
+            assertEquals(12, hit[2], 1e-6);
+        }
+    }
 }

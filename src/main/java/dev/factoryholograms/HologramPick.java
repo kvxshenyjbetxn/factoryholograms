@@ -22,6 +22,13 @@ public final class HologramPick {
         return new double[] {t, px, py};
     }
 
+    /** World position of panel pixel (px, py): the forward transform of the renderer, inverse of panelHit. */
+    public static double[] pixelToWorld(double px, double py, double cx, double cy, double cz,
+        float yawDeg, float pitchDeg, double scale, int width, int height) {
+        double[] r = rotate((px - width / 2.0D) * -scale, (py - height / 2.0D) * -scale, 0, yawDeg, pitchDeg);
+        return new double[] {cx + r[0], cy + r[1], cz + r[2]};
+    }
+
     /** GLOBAL slot index (recipe * 32 + local) of the icon under the point, or -1. */
     public static int slotAt(HologramLayout layout, double px, double py) {
         for (int slot : layout.allSlots()) {

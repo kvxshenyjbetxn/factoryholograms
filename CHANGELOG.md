@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.8
+
+- New key L (rebindable) toggles link lines fully on/off, remembering the previous mode.
+- Holograms are now linked automatically: when an output item of one hologram matches an input item of another, an animated line connects the two icons. Press Ctrl+H to cycle between lines for the looked-at hologram, all lines, or none. In the looked-at mode the lines follow the recipe you look at and stay visible for about 10 seconds after you look away.
+- New config options `linkMode`, `linkColor` and `linksThroughWalls`.
+
 ## 0.7.7
 
 - A hologram can now hold up to 8 recipes. Switch between them with the arrows above the slots in the editor, add or remove recipes with the + and - buttons.

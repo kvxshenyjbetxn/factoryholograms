@@ -1,6 +1,7 @@
 package dev.factoryholograms;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Locale;
 
 import net.minecraftforge.common.config.Configuration;
@@ -21,6 +22,11 @@ public final class HologramConfig {
     public static float opacity = DEFAULT_OPACITY;
     public static int color = DEFAULT_COLOR;
     public static int textColor = DEFAULT_TEXT_COLOR;
+    public static final String LINK_FOCUS = "focus", LINK_ALL = "all", LINK_OFF = "off";
+    public static final String[] LINK_MODES = {LINK_FOCUS, LINK_ALL, LINK_OFF};
+    public static String linkMode = LINK_FOCUS;
+    public static int linkColor = HologramPalette.ORANGE.rgb;
+    public static boolean linksThroughWalls = true;
     private static Configuration configuration;
 
     private HologramConfig() {}
@@ -58,7 +64,25 @@ public final class HologramConfig {
         opacityProperty.set((double) opacity);
         color = syncColor("color", HologramPalette.CYAN, "Global panel background and border color. Named colors and six-digit RGB hex are supported.");
         textColor = syncColor("textColor", HologramPalette.WHITE, "Global title and arrow color. Named colors and six-digit RGB hex are supported.");
+        Property modeProperty = configuration.get("display", "linkMode", LINK_FOCUS, "Link lines between holograms whose output item is another's input: focus = only for the hologram you look at, all, or off.");
+        modeProperty.setValidValues(LINK_MODES);
+        modeProperty.setLanguageKey("config.factoryholograms.linkMode");
+        String mode = modeProperty.getString();
+        linkMode = Arrays.asList(LINK_MODES).contains(mode) ? mode : LINK_FOCUS;
+        modeProperty.set(linkMode);
+        linkColor = syncColor("linkColor", HologramPalette.ORANGE, "Color of link lines between holograms. Named colors and six-digit RGB hex are supported.");
+        Property wallsProperty = configuration.get("display", "linksThroughWalls", true, "Also show faint link lines through blocks.");
+        wallsProperty.setLanguageKey("config.factoryholograms.linksThroughWalls");
+        linksThroughWalls = wallsProperty.getBoolean(true);
         if (configuration.hasChanged()) configuration.save();
+    }
+
+    public static void setLinkMode(String mode) {
+        linkMode = Arrays.asList(LINK_MODES).contains(mode) ? mode : LINK_FOCUS;
+        if (configuration != null) {
+            configuration.get("display", "linkMode", LINK_FOCUS).set(linkMode);
+            configuration.save();
+        }
     }
 
     public static void setEnabled(boolean value) {

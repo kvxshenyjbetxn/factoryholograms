@@ -29,7 +29,7 @@ public final class HologramConfigGui extends GuiConfig {
         List<IConfigElement> elements = new ConfigElement<Object>(HologramConfig.getConfiguration().getCategory("display")).getChildElements();
         for (int i = 0; i < elements.size(); i++) {
             String name = elements.get(i).getName();
-            if ("color".equals(name) || "textColor".equals(name)) {
+            if ("color".equals(name) || "textColor".equals(name) || "linkColor".equals(name)) {
                 elements.set(i, new ConfigElement<String>(HologramConfig.getConfiguration().getCategory("display").get(name)) {
                     @Override public Class<? extends GuiConfigEntries.IConfigEntry> getConfigEntryClass() {
                         return ColorEntry.class;

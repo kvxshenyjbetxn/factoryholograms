@@ -10,7 +10,7 @@ Tested on **GTNH 2.9.0 RC-2**. Works without GregTech or NEI.
 
 ## Install
 
-1. Download **`factoryholograms-0.7.4.jar`** from the [latest release](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
+1. Download **`factoryholograms-0.7.8.jar`** from the [latest release](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
 2. Place it in your game's **`mods/`** folder. Remove the older Factory Holograms JAR if installed.
 3. Start the game.
 
@@ -24,6 +24,8 @@ Real items stay in place. Each label holds up to **8 recipes**, each with up to 
 
 - **Shift+H** on the original block — edit its label.
 - **H** — show or hide all labels.
+- **Ctrl+H** — cycle link lines between holograms (an output item that matches another hologram's input): looked-at / all / off.
+- **L** — toggle link lines on/off (rebindable in Options → Controls → Factory Holograms).
 - **Delete** in the editor — remove the label, not the block.
 - **Escape** — cancel unsaved edits; first clears any item copy on the cursor.
 

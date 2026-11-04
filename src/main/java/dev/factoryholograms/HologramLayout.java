@@ -93,6 +93,15 @@ public final class HologramLayout {
     /** Y of the 1px separator line between band and band + 1. */
     public int separatorY(int band) { return bandTop[band] + bandHeader[band] + bandRows[band] * ROW + 3; }
 
+    /** Band containing panel-pixel row py (header through separator), or -1 for the title area or outside. */
+    public int bandAt(double py) {
+        int last = bandTop.length - 1;
+        for (int b = 0; b <= last; b++) {
+            if (py >= bandTop[b] && py < (b == last ? height : bandTop[b + 1])) return b;
+        }
+        return -1;
+    }
+
     public boolean hasSlot(int slot) { return slot >= 0 && slot < present.length && present[slot]; }
     /** Icon position for a GLOBAL slot index; only valid when {@link #hasSlot(int)}. */
     public int slotX(int slot) { return slotX[slot]; }
