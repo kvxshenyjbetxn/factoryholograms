@@ -1,2 +1,2 @@
-buildscript { project.ext.modVersion = '0.7.8' }
+buildscript { project.ext.modVersion = '0.7.9' }
 plugins { id 'com.gtnewhorizons.gtnhconvention' }

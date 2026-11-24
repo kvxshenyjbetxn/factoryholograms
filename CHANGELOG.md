@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.9
+
+- The hologram editor now uses the vanilla Minecraft GUI style: panel, slots and buttons come from the game's own textures, so resource packs (including dark ones) theme it too.
+- Label colors adapt to the panel brightness, staying readable on light and dark packs.
+- Cleaner spacing and alignment throughout the editor; small buttons no longer lose their bottom border.
+
 ## 0.7.8
 
 - New key L (rebindable) toggles link lines fully on/off, remembering the previous mode.

@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/96eca09f-0427-4458-8abf-a039270e8394
 
 ## Встановлення
 
-1. Завантажте **`factoryholograms-0.7.8.jar`** з [останнього релізу](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
+1. Завантажте **`factoryholograms-0.7.9.jar`** з [останнього релізу](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
 2. Покладіть його в папку **`mods/`** гри, замінивши старий JAR Factory Holograms, якщо він є.
 
 ## Швидкий старт

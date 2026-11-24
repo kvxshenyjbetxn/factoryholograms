@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/96eca09f-0427-4458-8abf-a039270e8394
 
 ## Install
 
-1. Download **`factoryholograms-0.7.8.jar`** from the [latest release](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
+1. Download **`factoryholograms-0.7.9.jar`** from the [latest release](https://github.com/kvxshenyjbetxn/factoryholograms/releases/latest).
 2. Put it in your game's **`mods/`** folder, replacing any older Factory Holograms JAR.
 
 ## Quick start

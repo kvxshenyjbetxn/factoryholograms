@@ -6,16 +6,19 @@ import java.util.List;
 import java.util.Locale;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 
 import org.lwjgl.input.Keyboard;
@@ -46,15 +49,33 @@ public final class HologramGui extends GuiContainer {
 
     private static final int POSITION_MODE = 18;
     private static final int ROTATION_MODE = 19;
-    private static final int ACCENT = 0x65E5ED;
     private static final int RECIPE_PREV = 20;
     private static final int RECIPE_NEXT = 21;
     private static final int RECIPE_ADD = 22;
     private static final int RECIPE_REMOVE = 23;
     private static final int SELECTOR_Y = 43;
-    private static final int GHOST_Y = 56;
-    private static final int INVENTORY_Y = 160;
-    private static final int HOTBAR_Y = 218;
+    private static final int GHOST_Y = 60;
+    private static final int ACTION_Y = GHOST_Y + 78;
+    private static final int INVENTORY_Y = 172;
+    private static final int HOTBAR_Y = 230;
+    private static final int TITLE_Y = 6;
+    private static final int TITLE_FIELD_Y = 18;
+    private static final int ROW_Y = 22;
+    private static final int ROW_STEP = 24;
+    private static final int AUTO_HINT_Y = 70;
+    private static final int RESET_Y = 96;
+    private static final int STEP_HINT_Y = 118;
+    private static final int DISPLAY_Y = 138;
+    private static final int PREVIEW_Y = 171;
+    private static final int ROTATION_Y = 195;
+    private static final int HOVER_HINT_Y = 234;
+    private static final int PLACEMENT_BACK_Y = 140;
+    private static final int PLACEMENT_APPLY_Y = 164;
+    private static final int PLACEMENT_ROTATION_Y = 188;
+    private static final int PLACEMENT_HEIGHT = 214;
+
+    private static final ResourceLocation PANEL_TEXTURE = new ResourceLocation("textures/gui/demo_background.png");
+    private static final ResourceLocation SLOT_TEXTURE = new ResourceLocation("textures/gui/container/generic_54.png");
 
     private static boolean browserFailureLogged;
     private final HologramLabel draft;
@@ -85,7 +106,7 @@ public final class HologramGui extends GuiContainer {
     public HologramGui(HologramLabel draft, ClientProxy owner) {
         super(new LocalDisplayContainer());
         xSize = 304;
-        ySize = 240;
+        ySize = 254;
         browser = createBrowser();
         this.draft = draft;
         this.owner = owner;
@@ -101,7 +122,7 @@ public final class HologramGui extends GuiContainer {
         clearLocalInput();
         if (contextPlayer == null) contextPlayer = mc.thePlayer;
         guiLeft = placementMode ? width - xSize - 8 : (width - xSize) / 2;
-        guiTop = placementMode ? Math.max(0, height - 210 - 8) : (height - ySize) / 2;
+        guiTop = placementMode ? Math.max(0, height - PLACEMENT_HEIGHT - 8) : (height - ySize) / 2;
         if (!repeatStateSaved) {
             previousRepeatState = Keyboard.areRepeatEventsEnabled();
             repeatStateSaved = true;
@@ -110,15 +131,13 @@ public final class HologramGui extends GuiContainer {
         // Preserve the draft title on resize, but never carry an unfinished drag across layouts.
         String title = titleField == null ? draft.getTitle() : titleField.getText();
         boolean focused = !placementMode && (titleField == null || titleField.isFocused());
-        titleField = new GuiTextField(fontRendererObj, guiLeft + 10, guiTop + 24, 156, 18);
+        titleField = new GuiTextField(fontRendererObj, guiLeft + 9, guiTop + TITLE_FIELD_Y, 158, 18);
         titleField.setMaxStringLength(LabelRules.MAX_TITLE);
         titleField.setText(title == null ? "" : title);
-        titleField.setTextColor(0xE4F8FA);
         titleField.setFocused(focused);
         boolean recipeFocused = !placementMode && recipeField != null && recipeField.isFocused();
         recipeField = new GuiTextField(fontRendererObj, guiLeft + 22, guiTop + SELECTOR_Y, 82, 12);
         recipeField.setMaxStringLength(LabelRules.MAX_RECIPE_NAME);
-        recipeField.setTextColor(0xE4F8FA);
         recipeField.setFocused(recipeFocused && !focused);
         currentRecipe = Math.max(0, Math.min(currentRecipe, draft.getRecipeCount() - 1));
         loadRecipeField();
@@ -126,28 +145,28 @@ public final class HologramGui extends GuiContainer {
         buttonList.clear();
         displayButton = null;
         if (placementMode) {
-            buttonList.add(new GuiButton(APPLY, guiLeft + 184, guiTop + 164, 112, 18, text("apply", "Apply")));
+            buttonList.add(new VanillaButton(APPLY, guiLeft + 184, guiTop + PLACEMENT_APPLY_Y, 112, 18, text("apply", "Apply")));
         } else {
-            displayButton = new GuiButton(TOGGLE, guiLeft + 184, guiTop + 148, 112, 18, "");
+            displayButton = new VanillaButton(TOGGLE, guiLeft + 184, guiTop + DISPLAY_Y, 112, 18, "");
             buttonList.add(displayButton);
-            buttonList.add(new GuiButton(APPLY, guiLeft + 8, guiTop + 130, 78, 18, text("apply", "Apply")));
-            buttonList.add(new GuiButton(DELETE, guiLeft + 90, guiTop + 130, 78, 18, text("delete", "Delete")));
-            buttonList.add(new GuiButton(RECIPE_PREV, guiLeft + 8, guiTop + SELECTOR_Y, 12, 12, "<"));
-            buttonList.add(new GuiButton(RECIPE_NEXT, guiLeft + 106, guiTop + SELECTOR_Y, 12, 12, ">"));
-            buttonList.add(new GuiButton(RECIPE_ADD, guiLeft + 142, guiTop + SELECTOR_Y, 12, 12, "+"));
-            buttonList.add(new GuiButton(RECIPE_REMOVE, guiLeft + 156, guiTop + SELECTOR_Y, 12, 12, "-"));
+            buttonList.add(new VanillaButton(APPLY, guiLeft + 8, guiTop + ACTION_Y, 78, 18, text("apply", "Apply")));
+            buttonList.add(new VanillaButton(DELETE, guiLeft + 90, guiTop + ACTION_Y, 78, 18, text("delete", "Delete")));
+            buttonList.add(new VanillaButton(RECIPE_PREV, guiLeft + 8, guiTop + SELECTOR_Y, 12, 12, "<"));
+            buttonList.add(new VanillaButton(RECIPE_NEXT, guiLeft + 106, guiTop + SELECTOR_Y, 12, 12, ">"));
+            buttonList.add(new VanillaButton(RECIPE_ADD, guiLeft + 142, guiTop + SELECTOR_Y, 12, 12, "+"));
+            buttonList.add(new VanillaButton(RECIPE_REMOVE, guiLeft + 156, guiTop + SELECTOR_Y, 12, 12, "-"));
         }
         for (int axis = 0; axis < (rotationMode ? 2 : 3); axis++) {
-            int y = guiTop + 32 + axis * 26;
-            buttonList.add(new GuiButton(POSITION_FIRST + axis * 2, guiLeft + 198, y, 18, 18, "-"));
-            buttonList.add(new GuiButton(POSITION_FIRST + axis * 2 + 1, guiLeft + 278, y, 18, 18, "+"));
+            int y = guiTop + ROW_Y + axis * ROW_STEP;
+            buttonList.add(new VanillaButton(POSITION_FIRST + axis * 2, guiLeft + 198, y, 18, 18, "-"));
+            buttonList.add(new VanillaButton(POSITION_FIRST + axis * 2 + 1, guiLeft + 278, y, 18, 18, "+"));
         }
-        buttonList.add(new GuiButton(POSITION_RESET, guiLeft + 184, guiTop + 116, 112, 18,
+        buttonList.add(new VanillaButton(POSITION_RESET, guiLeft + 184, guiTop + RESET_Y, 112, 18,
             rotationMode ? text("rotation.reset", "Reset angles") : text("position.reset", "Reset position")));
 
-        buttonList.add(new GuiButton(POSITION_MODE, guiLeft + 184, guiTop + (placementMode ? 140 : 172), 112, 18,
+        buttonList.add(new VanillaButton(POSITION_MODE, guiLeft + 184, guiTop + (placementMode ? PLACEMENT_BACK_Y : PREVIEW_Y), 112, 18,
             placementMode ? text("position.back", "Back to editor") : text("position.preview", "Position preview")));
-        buttonList.add(new GuiButton(ROTATION_MODE, guiLeft + 184, guiTop + (placementMode ? 188 : 196), 112, 18,
+        buttonList.add(new VanillaButton(ROTATION_MODE, guiLeft + 184, guiTop + (placementMode ? PLACEMENT_ROTATION_Y : ROTATION_Y), 112, 18,
             rotationMode ? text("rotation.position", "Position") : text("rotation.title", "Rotation / tilt")));
         updateGhostPositions();
         updatePositionButtons();
@@ -684,16 +703,13 @@ public final class HologramGui extends GuiContainer {
         int x = guiLeft;
         int y = guiTop;
         if (placementMode) {
-            drawRect(x + 184, y, x + 296, y + 210, 0xFF102129);
-            drawRect(x + 185, y + 1, x + 295, y + 209, 0xFF192F38);
-            drawRect(x + 185, y + 1, x + 295, y + 3, 0xFF65E5ED);
+            drawNineSlice(x + 176, y, 128, PLACEMENT_HEIGHT);
             return;
         }
-        drawRect(x, y, x + xSize, y + ySize, 0xFF102129);
-        drawRect(x + 1, y + 1, x + xSize - 1, y + ySize - 1, 0xFF192F38);
-        drawRect(x + 1, y + 1, x + xSize - 1, y + 3, 0xFF65E5ED);
-        drawRect(x + 176, y + 8, x + 177, y + ySize - 8, 0xFF387681);
-        drawRect(x + 7, y + 55, x + 169, y + 128, 0xFF102129);
+        drawNineSlice(x, y, xSize, ySize);
+        drawRect(x + 176, y + 6, x + 177, y + ySize - 6, 0x60000000);
+        drawRect(x + 177, y + 6, x + 178, y + ySize - 6, 0x70FFFFFF);
+        drawInset(x + 5, y + GHOST_Y - 3, x + 170, y + GHOST_Y + 74);
         int firstGhost = LabelRules.slot(currentRecipe, 0);
         for (int index = firstGhost; index < firstGhost + LabelRules.SLOTS_PER_RECIPE; index++) {
             if (!draft.isSlotVisible(index) || ghostX[index] < 0) continue;
@@ -709,9 +725,57 @@ public final class HologramGui extends GuiContainer {
 
     }
 
+    /** Theme-adaptive sunken area built from translucent overlays. */
+    private static void drawInset(int x1, int y1, int x2, int y2) {
+        drawRect(x1, y1, x2, y2, 0x28000000);
+        drawRect(x1, y1, x2, y1 + 1, 0x60000000);
+        drawRect(x1, y1 + 1, x1 + 1, y2, 0x60000000);
+        drawRect(x1 + 1, y2 - 1, x2, y2, 0x70FFFFFF);
+        drawRect(x2 - 1, y1 + 1, x2, y2 - 1, 0x70FFFFFF);
+    }
+
+    private void drawNineSlice(int x, int y, int w, int h) {
+        mc.getTextureManager().bindTexture(PANEL_TEXTURE);
+        prepareTextureDraw();
+        final int b = 4;
+        final int tw = 248;
+        final int th = 166;
+        int mw = w - 2 * b;
+        int mh = h - 2 * b;
+        drawTexturedRect(x, y, b, b, 0, 0, b, b);
+        drawTexturedRect(x + b, y, mw, b, b, 0, tw - 2 * b, b);
+        drawTexturedRect(x + w - b, y, b, b, tw - b, 0, b, b);
+        drawTexturedRect(x, y + b, b, mh, 0, b, b, th - 2 * b);
+        drawTexturedRect(x + b, y + b, mw, mh, b, b, tw - 2 * b, th - 2 * b);
+        drawTexturedRect(x + w - b, y + b, b, mh, tw - b, b, b, th - 2 * b);
+        drawTexturedRect(x, y + h - b, b, b, 0, th - b, b, b);
+        drawTexturedRect(x + b, y + h - b, mw, b, b, th - b, tw - 2 * b, b);
+        drawTexturedRect(x + w - b, y + h - b, b, b, tw - b, th - b, b, b);
+    }
+
+    private static void prepareTextureDraw() {
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(1, 1, 1, 1);
+    }
+
+    /** Draws a region of a 256x256 texture, stretched to the destination rectangle. */
+    private static void drawTexturedRect(int x, int y, int w, int h, int u, int v, int uw, int vh) {
+        float scale = 1.0F / 256.0F;
+        Tessellator t = Tessellator.instance;
+        t.startDrawingQuads();
+        t.addVertexWithUV(x, y + h, 0, u * scale, (v + vh) * scale);
+        t.addVertexWithUV(x + w, y + h, 0, (u + uw) * scale, (v + vh) * scale);
+        t.addVertexWithUV(x + w, y, 0, (u + uw) * scale, v * scale);
+        t.addVertexWithUV(x, y, 0, u * scale, v * scale);
+        t.draw();
+    }
+
     private void drawSlot(int x, int y, boolean ghost) {
-        drawRect(x - 1, y - 1, x + 17, y + 17, ghost ? 0xFF387681 : 0xFF40525B);
-        drawRect(x, y, x + 16, y + 16, 0xFF0B181E);
+        mc.getTextureManager().bindTexture(SLOT_TEXTURE);
+        prepareTextureDraw();
+        drawTexturedRect(x - 1, y - 1, 18, 18, 7, 17, 18, 18);
     }
 
     private void drawItem(ItemStack stack, int x, int y) {
@@ -738,30 +802,30 @@ public final class HologramGui extends GuiContainer {
 
     private void drawLabels() {
         if (!placementMode) {
-            drawLabel(text("title", "Factory Holograms"), 10, 9, ACCENT);
-            drawLabel((currentRecipe + 1) + "/" + draft.getRecipeCount(), 121, SELECTOR_Y + 2, 0xE4F8FA);
-            drawLabel("->", 81, 84, ACCENT);
+            drawLabel(text("title", "Factory Holograms"), 8, TITLE_Y, GuiTheme.label());
+            drawLabel((currentRecipe + 1) + "/" + draft.getRecipeCount(), 121, SELECTOR_Y + 2, GuiTheme.label());
+            drawLabel("->", 87 - fontRendererObj.getStringWidth("->") / 2, GHOST_Y + 32, GuiTheme.label());
         }
         drawLabel(fontRendererObj.trimStringToWidth(rotationMode ? text("rotation.title", "Rotation / tilt")
-            : text("position.title", "Position"), 112), 184, 10, ACCENT);
+            : text("position.title", "Position"), 112), 184, TITLE_Y, GuiTheme.label());
         String[] axes = rotationMode ? new String[] { "Y", "P" } : new String[] { "X", "Y", "Z" };
         float[] position = rotationMode ? new float[] {draft.getYaw(), draft.getPitch()} : draft.getPositionOffsets();
         for (int axis = 0; axis < position.length; axis++) {
-            int y = 37 + axis * 26;
-            drawLabel(axes[axis], 184, y, ACCENT);
-            String value = String.format(Locale.ROOT, rotationMode ? "%+.0f°" : "%+.2f", position[axis]);
-            drawLabel(value, 247 - fontRendererObj.getStringWidth(value) / 2, y, 0xE4F8FA);
+            int y = ROW_Y + axis * ROW_STEP + 5;
+            drawLabel(axes[axis], 184, y, GuiTheme.label());
+            String value = String.format(Locale.ROOT, rotationMode ? "%+.0f\u00b0" : "%+.2f", position[axis]);
+            drawLabel(value, 247 - fontRendererObj.getStringWidth(value) / 2, y, GuiTheme.label());
         }
         if (rotationMode && HologramConfig.autoRotate) {
-            drawLabel(fontRendererObj.trimStringToWidth(text("rotation.auto", "Auto-rotate on"), 112), 184, 94, 0xB7C9CE);
+            drawLabel(fontRendererObj.trimStringToWidth(text("rotation.auto", "Auto-rotate on"), 112), 184, AUTO_HINT_Y, GuiTheme.hint());
         }
-        drawLabel(fontRendererObj.trimStringToWidth(rotationMode ? text("rotation.step", "5° (Shift: 15°)")
+        drawLabel(fontRendererObj.trimStringToWidth(rotationMode ? text("rotation.step", "5\u00b0 (Shift: 15\u00b0)")
             : text("position.step", "0.25 (Shift: 1)"), 112),
-            184, placementMode ? 22 : 137, 0xB7C9CE);
+            184, STEP_HINT_Y, GuiTheme.hint());
         if (!placementMode) {
-            drawLabel(StatCollector.translateToLocal("container.inventory"), 8, INVENTORY_Y - 10, 0xB7C9CE);
+            drawLabel(StatCollector.translateToLocal("container.inventory"), 8, INVENTORY_Y - 11, GuiTheme.label());
             drawLabel(fontRendererObj.trimStringToWidth(text("ghost.drag.short", "Hover icons for help"), 112),
-                184, 223, 0xB7C9CE);
+                184, HOVER_HINT_Y, GuiTheme.hint());
         }
     }
 
@@ -774,7 +838,7 @@ public final class HologramGui extends GuiContainer {
         int y = mouseY - guiTop;
         int ghost = placementMode ? -1 : ghostAt(x, y);
         int inventory = placementMode ? -1 : inventoryAt(x, y);
-        int modeY = placementMode ? 140 : 172;
+        int modeY = placementMode ? PLACEMENT_BACK_Y : PREVIEW_Y;
         List<String> lines = new ArrayList<String>();
         if (ghost >= 0) {
             addItemTooltip(lines, draft.getStackInSlot(ghost));
@@ -794,19 +858,19 @@ public final class HologramGui extends GuiContainer {
                 lines.add(placementMode
                     ? text("position.back.hint", "Return to title and icon editing without saving.")
                     : text("position.preview.hint", "Position the live preview with the world unobstructed."));
-            } else if (!placementMode && y >= 223 && y < 236) {
+            } else if (!placementMode && y >= HOVER_HINT_Y && y < HOVER_HINT_Y + 8) {
                 lines.add(sourceHint());
-            } else if (!placementMode && y >= 148 && y < 166) {
+            } else if (!placementMode && y >= DISPLAY_Y && y < DISPLAY_Y + 18) {
                 lines.add(text("display.hint", "Only changes visibility on your client."));
-            } else if (y >= 32 && y < 110) {
+            } else if (y >= ROW_Y && y < ROW_Y + (rotationMode ? 2 : 3) * ROW_STEP) {
                 if (rotationMode) {
                     lines.add(text("rotation.hint", "Y: yaw, P: pitch. Disable auto-rotate in the mod settings to edit angles."));
                 } else {
                     String[] axes = { "x", "y", "z" };
-                    lines.add(text("position." + axes[(y - 32) / 26], "World axis"));
+                    lines.add(text("position." + axes[Math.min(2, (y - ROW_Y) / ROW_STEP)], "World axis"));
                 }
             }
-            if ((y >= 32 && y < 134) || (y >= modeY && y < modeY + 18)) {
+            if ((y >= ROW_Y && y < RESET_Y + 18) || (y >= modeY && y < modeY + 18)) {
                 lines.add(text("position.live.hint", "Preview updates immediately. Apply saves; Escape discards edits."));
             }
         }
@@ -846,5 +910,41 @@ public final class HologramGui extends GuiContainer {
         return StatCollector.canTranslate(fullKey)
             ? StatCollector.translateToLocalFormatted(fullKey, arguments)
             : String.format(Locale.ROOT, fallback, arguments);
+    }
+
+    /** GuiButton that keeps its bottom border at any height by drawing the texture in four quadrants. */
+    private static final class VanillaButton extends GuiButton {
+
+        VanillaButton(int id, int x, int y, int width, int height, String label) {
+            super(id, x, y, width, height, label);
+        }
+
+        @Override
+        public void drawButton(Minecraft mc, int mouseX, int mouseY) {
+            if (!visible) return;
+            FontRenderer font = mc.fontRenderer;
+            mc.getTextureManager().bindTexture(buttonTextures);
+            GL11.glColor4f(1, 1, 1, 1);
+            field_146123_n = mouseX >= xPosition && mouseY >= yPosition
+                && mouseX < xPosition + width && mouseY < yPosition + height;
+            int state = getHoverState(field_146123_n);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            int v = 46 + state * 20;
+            int halfW = width / 2;
+            int topH = height / 2;
+            int bottomH = height - topH;
+            int bottomV = v + 20 - bottomH;
+            drawTexturedModalRect(xPosition, yPosition, 0, v, halfW, topH);
+            drawTexturedModalRect(xPosition + halfW, yPosition, 200 - halfW, v, halfW, topH);
+            drawTexturedModalRect(xPosition, yPosition + topH, 0, bottomV, halfW, bottomH);
+            drawTexturedModalRect(xPosition + halfW, yPosition + topH, 200 - halfW, bottomV, halfW, bottomH);
+            mouseDragged(mc, mouseX, mouseY);
+            int color = 14737632;
+            if (packedFGColour != 0) color = packedFGColour;
+            else if (!enabled) color = 10526880;
+            else if (field_146123_n) color = 16777120;
+            drawCenteredString(font, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, color);
+        }
     }
 }
